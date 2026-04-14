@@ -1,6 +1,5 @@
 # Conan binary (scripts/setup.sh 으로 다운로드)
-conan/conan
-conan/_internal/
+conan/bin/
 
 # Build
 cmake-build-*/

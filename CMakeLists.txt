@@ -1,6 +1,16 @@
 cmake_minimum_required(VERSION 3.24)
 set(CMAKE_PROJECT_TOP_LEVEL_INCLUDES "${CMAKE_CURRENT_SOURCE_DIR}/cmake/conan_provider.cmake") # 가장 프로젝트 상위에 존재해야함
-set(CONAN_COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/conan/conan")
+set(CONAN_COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/conan/bin/conan")
+if(NOT EXISTS "${CONAN_COMMAND}")
+    message(STATUS "Conan not found. Running scripts/install_conan.sh...")
+    execute_process(
+        COMMAND bash "${CMAKE_CURRENT_SOURCE_DIR}/scripts/install_conan.sh"
+        RESULT_VARIABLE _conan_install_result
+    )
+    if(NOT _conan_install_result EQUAL 0)
+        message(FATAL_ERROR "Conan install failed. Run scripts/install_conan.sh manually.")
+    endif()
+endif()
 
 
 project(kimchi C CXX)
