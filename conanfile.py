@@ -1,6 +1,3 @@
-# This file is managed by Conan, contents will be overwritten.
-# To keep your changes, remove these comment lines, but the plugin won't be able to modify your requirements
-
 from conan import ConanFile
 from conan.tools.cmake import cmake_layout, CMakeToolchain, CMakeDeps
 
@@ -22,4 +19,5 @@ class ConanApplication(ConanFile):
         self.requires("gtest/1.14.0")
         self.requires("glog/0.7.1")
         self.requires("gflags/2.2.2")
+        self.requires("proxygen/2024.08.12.00")
 
