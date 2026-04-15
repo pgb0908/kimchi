@@ -12,22 +12,13 @@ if(NOT EXISTS "${CONAN_COMMAND}")
     endif()
 endif()
 
-# 로컬 레시피(proxygen 등)가 캐시에 없으면 create_recipes.sh 자동 실행
-# conan list는 패키지가 없어도 exit code 0을 반환하므로 출력 텍스트로 판단
+# 레시피 export (idempotent, 수초 소요)
 execute_process(
-    COMMAND ${CONAN_COMMAND} list "proxygen/2024.08.12.00"
-    OUTPUT_VARIABLE _proxygen_list_output
-    ERROR_QUIET
+    COMMAND bash "${CMAKE_CURRENT_SOURCE_DIR}/scripts/export_recipes.sh"
+    RESULT_VARIABLE _recipes_result
 )
-if(_proxygen_list_output MATCHES "ERROR")
-    message(STATUS "Local recipes not found. Running scripts/create_recipes.sh (this may take a while)...")
-    execute_process(
-        COMMAND bash "${CMAKE_CURRENT_SOURCE_DIR}/scripts/create_recipes.sh"
-        RESULT_VARIABLE _recipes_result
-    )
-    if(NOT _recipes_result EQUAL 0)
-        message(FATAL_ERROR "create_recipes.sh failed. Run it manually: ./scripts/create_recipes.sh")
-    endif()
+if(NOT _recipes_result EQUAL 0)
+    message(FATAL_ERROR "Recipe export failed. Run scripts/export_recipes.sh manually.")
 endif()
 
 

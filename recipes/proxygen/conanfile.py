@@ -5,15 +5,15 @@ import os
 
 class ProxygenConan(ConanFile):
     name = "proxygen"
-    version = "2024.08.12.00"
+    version = "2026.04.13.00"
     settings = "os", "compiler", "build_type", "arch"
     options = {"shared": [True, False], "fPIC": [True, False]}
     default_options = {"shared": False, "fPIC": True}
 
     def requirements(self):
-        self.requires("folly/2024.08.12.00")
-        self.requires("fizz/2024.08.12.00")
-        self.requires("wangle/2024.08.12.00")
+        self.requires("folly/2026.04.13.00")
+        self.requires("fizz/2026.04.13.00")
+        self.requires("wangle/2026.04.13.00")
         self.requires("openssl/3.3.2")
         self.requires("zlib/1.3.1")
         self.requires("fmt/10.2.1")
@@ -23,7 +23,7 @@ class ProxygenConan(ConanFile):
 
     def source(self):
         get(self,
-            url="https://github.com/facebook/proxygen/archive/refs/tags/v2024.08.12.00.tar.gz",
+            url="https://github.com/facebook/proxygen/archive/refs/tags/v2026.04.13.00.tar.gz",
             strip_root=True)
 
     def generate(self):
@@ -37,6 +37,7 @@ class ProxygenConan(ConanFile):
             variables={
                 "BUILD_TESTS": "OFF",
                 "BUILD_SAMPLES": "OFF",
+                "CMAKE_POLICY_VERSION_MINIMUM": "3.5",
             }
         )
         cmake.build()

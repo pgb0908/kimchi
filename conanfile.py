@@ -19,5 +19,5 @@ class ConanApplication(ConanFile):
         self.requires("gtest/1.14.0")
         self.requires("glog/0.7.1")
         self.requires("gflags/2.2.2")
-        self.requires("proxygen/2024.08.12.00")
+        self.requires("proxygen/2026.04.13.00")
 

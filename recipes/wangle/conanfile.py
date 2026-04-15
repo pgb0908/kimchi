@@ -5,14 +5,14 @@ import os
 
 class WangleConan(ConanFile):
     name = "wangle"
-    version = "2024.08.12.00"
+    version = "2026.04.13.00"
     settings = "os", "compiler", "build_type", "arch"
     options = {"shared": [True, False], "fPIC": [True, False]}
     default_options = {"shared": False, "fPIC": True}
 
     def requirements(self):
-        self.requires("folly/2024.08.12.00")
-        self.requires("fizz/2024.08.12.00")
+        self.requires("folly/2026.04.13.00")
+        self.requires("fizz/2026.04.13.00")
         self.requires("openssl/3.3.2")
 
     def layout(self):
@@ -20,7 +20,7 @@ class WangleConan(ConanFile):
 
     def source(self):
         get(self,
-            url="https://github.com/facebook/wangle/archive/refs/tags/v2024.08.12.00.tar.gz",
+            url="https://github.com/facebook/wangle/archive/refs/tags/v2026.04.13.00.tar.gz",
             strip_root=True)
 
     def generate(self):
@@ -34,6 +34,7 @@ class WangleConan(ConanFile):
             variables={
                 "BUILD_TESTS": "OFF",
                 "BUILD_EXAMPLES": "OFF",
+                "CMAKE_POLICY_VERSION_MINIMUM": "3.5",
             }
         )
         cmake.build()
