@@ -16,7 +16,7 @@ class ProxygenConan(ConanFile):
         self.requires("wangle/2026.04.13.00")
         self.requires("openssl/3.3.2")
         self.requires("zlib/1.3.1")
-        self.requires("fmt/10.2.1")
+        self.requires("fmt/12.1.0")
 
     def layout(self):
         cmake_layout(self)

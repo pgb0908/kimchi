@@ -24,6 +24,9 @@ endif()
 
 project(kimchi C CXX)
 
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 set (CXX_FLAGS
         -g
         -fPIC
@@ -42,7 +45,7 @@ set (CXX_FLAGS
         -fms-extensions
         -Wfloat-equal
         -Wextra
-        -std=c++17
+        -std=c++20
 )
 
 

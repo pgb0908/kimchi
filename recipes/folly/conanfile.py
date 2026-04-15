@@ -12,7 +12,7 @@ class FollyConan(ConanFile):
     def requirements(self):
         self.requires("openssl/3.3.2")
         self.requires("zlib/1.3.1")
-        self.requires("fmt/10.2.1")
+        self.requires("fmt/12.1.0")
         self.requires("gflags/2.2.2")
         self.requires("glog/0.7.1")
         self.requires("double-conversion/3.3.0")
@@ -55,5 +55,11 @@ class FollyConan(ConanFile):
         cmake.install()
 
     def package_info(self):
+        # CMakeDeps 래퍼 파일 생성 안 함 → folly 네이티브 cmake 파일 사용
+        # folly 최신 버전은 Folly::folly_range 등 컴포넌트 타겟을 직접 정의
+        self.cpp_info.set_property("cmake_find_mode", "none")
+        # builddirs → CMakeToolchain이 CMAKE_PREFIX_PATH에 이 경로를 추가
+        # find_package(folly)가 lib/cmake/folly/folly-config.cmake를 찾게 됨
+        self.cpp_info.builddirs = ["lib/cmake/folly"]
         self.cpp_info.libs = ["folly"]
         self.cpp_info.system_libs = ["pthread", "dl"]
