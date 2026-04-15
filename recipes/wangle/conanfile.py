@@ -2,7 +2,6 @@ from conan import ConanFile
 from conan.tools.cmake import CMake, cmake_layout, CMakeDeps, CMakeToolchain
 from conan.tools.files import get, replace_in_file
 import os
-import re
 
 class WangleConan(ConanFile):
     name = "wangle"
@@ -47,7 +46,6 @@ class WangleConan(ConanFile):
 
     def _patch_upstream_cmake(self):
         source_root = os.path.join(self.source_folder, "wangle")
-        self._replace_regex_in_tree(source_root, r"\bFolly::[A-Za-z0-9_]+\b", "folly::folly")
         cmake_lists = os.path.join(source_root, "CMakeLists.txt")
         replace_in_file(
             self,
@@ -71,25 +69,12 @@ class WangleConan(ConanFile):
             strict=False,
         )
 
-    def _replace_regex_in_file(self, path, pattern, repl):
-        with open(path, "r", encoding="utf-8") as f:
-            content = f.read()
-        updated = re.sub(pattern, repl, content)
-        if updated != content:
-            with open(path, "w", encoding="utf-8") as f:
-                f.write(updated)
-
-    def _replace_regex_in_tree(self, root, pattern, repl):
-        for current_root, _, files in os.walk(root):
-            for name in files:
-                if name == "CMakeLists.txt" or name.endswith(".cmake"):
-                    self._replace_regex_in_file(os.path.join(current_root, name), pattern, repl)
-
     def package(self):
         cmake = CMake(self)
         cmake.install()
 
     def package_info(self):
+        self.cpp_info.set_property("cmake_find_mode", "both")
         self.cpp_info.set_property("cmake_file_name", "wangle")
         self.cpp_info.set_property("cmake_target_name", "wangle::wangle")
         self.cpp_info.builddirs = ["lib/cmake/wangle"]

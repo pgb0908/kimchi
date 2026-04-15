@@ -1,10 +1,11 @@
 from conan import ConanFile
 from conan.tools.cmake import CMake, cmake_layout, CMakeDeps, CMakeToolchain
-from conan.tools.files import get, replace_in_file
+from conan.tools.files import get, collect_libs, replace_in_file
 import os
 
-class ProxygenConan(ConanFile):
-    name = "proxygen"
+
+class MvfstConan(ConanFile):
+    name = "mvfst"
     version = "2026.04.13.00"
     settings = "os", "compiler", "build_type", "arch"
     options = {"shared": [True, False], "fPIC": [True, False]}
@@ -13,39 +14,31 @@ class ProxygenConan(ConanFile):
     def requirements(self):
         self.requires("folly/2026.04.13.00")
         self.requires("fizz/2026.04.13.00")
-        self.requires("wangle/2026.04.13.00")
-        self.requires("mvfst/2026.04.13.00")
         self.requires("openssl/3.3.2")
-        self.requires("zlib/1.3.1")
-        self.requires("fmt/12.1.0")
+        self.requires("libevent/2.1.12")
         self.requires("glog/0.7.1")
         self.requires("gflags/2.2.2")
-        self.requires("libevent/2.1.12")
-        self.requires("c-ares/1.34.6")
+        self.requires("zlib/1.3.1")
 
     def layout(self):
         cmake_layout(self)
 
     def source(self):
-        get(self,
-            url="https://github.com/facebook/proxygen/archive/refs/tags/v2026.04.13.00.tar.gz",
-            strip_root=True)
+        get(
+            self,
+            url="https://github.com/facebook/mvfst/archive/refs/tags/v2026.04.13.00.tar.gz",
+            strip_root=True,
+        )
 
     def generate(self):
         CMakeDeps(self).generate()
         tc = CMakeToolchain(self)
-        for key, value in self._cmake_configure_variables().items():
-            tc.cache_variables[key] = value
+        tc.cache_variables["BUILD_TESTS"] = "OFF"
+        tc.cache_variables["BUILD_SAMPLES"] = "OFF"
+        tc.cache_variables["BUILD_SHARED_LIBS"] = "ON" if self.options.shared else "OFF"
+        tc.cache_variables["CMAKE_POLICY_VERSION_MINIMUM"] = "3.5"
         tc.generate()
         self._patch_glog_data()
-
-    def _cmake_configure_variables(self):
-        return {
-            "BUILD_TESTS": "OFF",
-            "BUILD_SAMPLES": "OFF",
-            "BUILD_SHARED_LIBS": "ON" if self.options.shared else "OFF",
-            "CMAKE_POLICY_VERSION_MINIMUM": "3.5",
-        }
 
     def build(self):
         self._patch_upstream_cmake()
@@ -54,20 +47,12 @@ class ProxygenConan(ConanFile):
         cmake.build()
 
     def _patch_upstream_cmake(self):
-        source_root = self.source_folder
-        cmake_lists = os.path.join(source_root, "CMakeLists.txt")
+        cmake_lists = os.path.join(self.source_folder, "CMakeLists.txt")
         replace_in_file(
             self,
             cmake_lists,
-            "find_package(Wangle CONFIG REQUIRED)",
-            "find_package(wangle CONFIG REQUIRED)",
-            strict=False,
-        )
-        replace_in_file(
-            self,
-            cmake_lists,
-            "find_package(Fizz CONFIG REQUIRED)",
-            "find_package(fizz CONFIG REQUIRED)",
+            "find_package(OpenSSL REQUIRED)",
+            "find_package(OpenSSL REQUIRED)\nfind_package(Libevent REQUIRED)",
             strict=False,
         )
         replace_in_file(
@@ -87,8 +72,8 @@ class ProxygenConan(ConanFile):
         replace_in_file(
             self,
             cmake_lists,
-            "if (NOT DEFINED fizz_SOURCE_DIR)\n  find_package(fizz REQUIRED)\nendif()",
-            "find_package(Libevent REQUIRED)\nif (NOT DEFINED fizz_SOURCE_DIR)\n  find_package(fizz REQUIRED)\nendif()",
+            "find_package(Fizz CONFIG REQUIRED)",
+            "find_package(fizz REQUIRED)",
             strict=False,
         )
 
@@ -115,8 +100,8 @@ class ProxygenConan(ConanFile):
         cmake.install()
 
     def package_info(self):
-        self.cpp_info.set_property("cmake_file_name", "proxygen")
-        self.cpp_info.set_property("cmake_target_name", "proxygen::proxygen")
-        self.cpp_info.libs = ["proxygen"]
-        self.cpp_info.components["proxygenhttpserver"].set_property("cmake_target_name", "proxygen::proxygenhttpserver")
-        self.cpp_info.components["proxygenhttpserver"].libs = ["proxygen_httpserver", "proxygen"]
+        self.cpp_info.set_property("cmake_find_mode", "both")
+        self.cpp_info.set_property("cmake_file_name", "mvfst")
+        self.cpp_info.set_property("cmake_target_name", "mvfst::mvfst")
+        self.cpp_info.builddirs = ["lib/cmake/mvfst"]
+        self.cpp_info.libs = collect_libs(self)

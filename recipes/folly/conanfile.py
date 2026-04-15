@@ -67,9 +67,9 @@ class FollyConan(ConanFile):
         cmake.install()
 
     def package_info(self):
+        self.cpp_info.set_property("cmake_find_mode", "both")
         self.cpp_info.set_property("cmake_file_name", "folly")
         self.cpp_info.set_property("cmake_target_name", "folly::folly")
-        self.cpp_info.set_property("cmake_target_aliases", ["Folly::folly"])
         self.cpp_info.builddirs = ["lib/cmake/folly"]
         self.cpp_info.libs = ["folly"]
         self.cpp_info.system_libs = ["pthread", "dl"]
