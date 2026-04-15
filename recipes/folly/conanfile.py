@@ -5,8 +5,11 @@ import os
 
 class FollyConan(ConanFile):
     name = "folly"
-    version = "2026.04.13.00"
     settings = "os", "compiler", "build_type", "arch"
+
+    def set_version(self):
+        p = os.path.join(os.path.dirname(__file__), "..", "meta_version.txt")
+        self.version = open(p).read().strip()
     options = {"shared": [True, False], "fPIC": [True, False]}
     default_options = {"shared": False, "fPIC": True}
 
@@ -32,7 +35,7 @@ class FollyConan(ConanFile):
 
     def source(self):
         get(self,
-            url="https://github.com/facebook/folly/archive/refs/tags/v2026.04.13.00.tar.gz",
+            url=f"https://github.com/facebook/folly/archive/refs/tags/v{self.version}.tar.gz",
             strip_root=True)
 
     def generate(self):
@@ -67,9 +70,12 @@ class FollyConan(ConanFile):
         cmake.install()
 
     def package_info(self):
+        # consumer에서는 CMakeDeps 래퍼를 통해 find_package(folly) 동작.
+        # 내부 빌드(conan create)에서는 builddirs의 native config가 사용되어
+        # Folly::folly, Folly::folly_range 등 세분화된 타깃을 제공.
         self.cpp_info.set_property("cmake_find_mode", "both")
         self.cpp_info.set_property("cmake_file_name", "folly")
-        self.cpp_info.set_property("cmake_target_name", "folly::folly")
+        self.cpp_info.set_property("cmake_target_name", "Folly::folly")
         self.cpp_info.builddirs = ["lib/cmake/folly"]
         self.cpp_info.libs = ["folly"]
         self.cpp_info.system_libs = ["pthread", "dl"]

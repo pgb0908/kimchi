@@ -5,13 +5,16 @@ import os
 
 class FizzConan(ConanFile):
     name = "fizz"
-    version = "2026.04.13.00"
     settings = "os", "compiler", "build_type", "arch"
     options = {"shared": [True, False], "fPIC": [True, False]}
     default_options = {"shared": False, "fPIC": True}
 
+    def set_version(self):
+        p = os.path.join(os.path.dirname(__file__), "..", "meta_version.txt")
+        self.version = open(p).read().strip()
+
     def requirements(self):
-        self.requires("folly/2026.04.13.00")
+        self.requires(f"folly/{self.version}")
         self.requires("openssl/3.3.2")
         self.requires("libsodium/1.0.19")
         self.requires("fmt/12.1.0")
@@ -26,11 +29,14 @@ class FizzConan(ConanFile):
 
     def source(self):
         get(self,
-            url="https://github.com/facebookincubator/fizz/archive/refs/tags/v2026.04.13.00.tar.gz",
+            url=f"https://github.com/facebookincubator/fizz/archive/refs/tags/v{self.version}.tar.gz",
             strip_root=True)
 
     def generate(self):
-        CMakeDeps(self).generate()
+        deps = CMakeDeps(self)
+        # 내부 빌드에서는 folly native config 사용 (Folly::folly_range 등 컴포넌트 타깃 필요)
+        deps.set_property("folly", "cmake_find_mode", "none")
+        deps.generate()
         tc = CMakeToolchain(self)
         for key, value in self._cmake_configure_variables().items():
             tc.cache_variables[key] = value

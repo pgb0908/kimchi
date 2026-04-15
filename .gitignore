@@ -4,5 +4,8 @@ conan/bin/
 # Build
 cmake-build-*/
 
+# Python
+__pycache__/
+
 # IDE
 .idea/
