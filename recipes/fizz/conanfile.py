@@ -41,7 +41,6 @@ class FizzConan(ConanFile):
         for key, value in self._cmake_configure_variables().items():
             tc.cache_variables[key] = value
         tc.generate()
-        self._patch_fmt_data()
 
     def _cmake_configure_variables(self):
         return {
@@ -51,43 +50,6 @@ class FizzConan(ConanFile):
             "sodium_USE_STATIC_LIBS": "OFF" if self.options.shared else "ON",
             "CMAKE_POLICY_VERSION_MINIMUM": "3.5",
         }
-
-    def _patch_fmt_data(self):
-        # Conan CMakeDeps 버그: fmt recipe가 components["_fmt"]를 사용하면서
-        # includedirs를 명시하지 않아 INTERFACE_INCLUDE_DIRECTORIES가 빈 값으로 생성됨.
-        # conan_toolchain.cmake가 CMAKE_FIND_PACKAGE_PREFER_CONFIG ON을 설정하므로
-        # Findfmt.cmake 모듈 방식은 동작하지 않음.
-        # 해결: CMakeDeps가 생성한 데이터 파일을 직접 패치.
-        import re
-        build_type = str(self.settings.build_type).lower()
-        arch = str(self.settings.arch)
-        data_file = os.path.join(
-            self.generators_folder,
-            f"fmt-{build_type}-{arch}-data.cmake"
-        )
-        if not os.path.exists(data_file):
-            return
-        with open(data_file, "r") as f:
-            content = f.read()
-        # 이미 패치됐으면 건너뜀
-        if "INCLUDE_DIRS" in content and "/include" in content.split("fmt_INCLUDE_DIRS")[1][:100]:
-            return
-        # 데이터 파일에서 패키지 경로 추출
-        bt = build_type.upper()
-        match = re.search(rf'set\(fmt_PACKAGE_FOLDER_{bt}\s+"([^"]+)"\)', content)
-        if not match:
-            return
-        include_dir = match.group(1) + "/include"
-        content = content.replace(
-            f"set(fmt_fmt_fmt_INCLUDE_DIRS_{bt} )\n",
-            f'set(fmt_fmt_fmt_INCLUDE_DIRS_{bt} "{include_dir}")\n'
-        )
-        content = content.replace(
-            f"set(fmt_INCLUDE_DIRS_{bt} )\n",
-            f'set(fmt_INCLUDE_DIRS_{bt} "{include_dir}")\n'
-        )
-        with open(data_file, "w") as f:
-            f.write(content)
 
     def build(self):
         self._patch_upstream_cmake()
