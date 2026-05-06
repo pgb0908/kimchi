@@ -6,9 +6,18 @@ cmake_local/
 
 # Build
 cmake-build-*/
+build/
+build-release/
+
+# Conan
+.conan_home/
+.conan_home.bak*/
+conan/dependency_graph.png
+graph.html
 
 # Python
 __pycache__/
 
 # IDE
 .idea/
+.codex/
