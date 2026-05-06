@@ -26,7 +26,7 @@ class FollyConan(ConanFile):
         self.requires("lz4/1.9.4", transitive_headers=True, transitive_libs=True)
         self.requires("zstd/1.5.5", transitive_headers=True, transitive_libs=True)
         self.requires("bzip2/1.0.8", transitive_headers=True, transitive_libs=True)
-        self.requires("xz_utils/5.4.5", transitive_headers=True, transitive_libs=True)
+        self.requires("xz_utils/[>=5.4.5 <6]", transitive_headers=True, transitive_libs=True)
         self.requires("snappy/1.1.10", transitive_headers=True, transitive_libs=True)
         self.requires("fast_float/8.1.0", transitive_headers=True, transitive_libs=True)
 
