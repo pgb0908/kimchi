@@ -1,11 +1,4 @@
-find_package(folly REQUIRED)
-find_package(fizz REQUIRED)
-find_package(wangle REQUIRED)
-find_package(mvfst REQUIRED)
 find_package(proxygen REQUIRED)
-find_package(glog REQUIRED)
-find_package(gflags REQUIRED)
-find_package(fmt REQUIRED)
 
 set(KIMCHI_SOURCES
     main.cpp
@@ -27,8 +20,4 @@ target_include_directories(kimchi PRIVATE
 target_link_libraries(kimchi PRIVATE
     proxygen::proxygen
     proxygen::proxygenhttpserver
-    Folly::folly
-    glog::glog
-    gflags::gflags
-    fmt::fmt
 )

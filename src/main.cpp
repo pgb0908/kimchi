@@ -5,6 +5,9 @@
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 
+#include "config/models.h"
+#include "handler/admin_handler.h"
+
 DEFINE_string(config_dir, "/etc/kimchi/config",
               "Directory containing JSON config files");
 DEFINE_int32(data_port_http, 18000, "HTTP data plane port");
