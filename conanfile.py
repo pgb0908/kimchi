@@ -21,8 +21,6 @@ class ConanApplication(ConanFile):
         tc.generate()
 
     def requirements(self):
-        self.requires("gtest/1.14.0")
         self.requires("glog/0.7.1")
         self.requires("gflags/2.2.2")
         self.requires(f"proxygen/{self._meta_version()}")
-

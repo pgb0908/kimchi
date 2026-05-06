@@ -7,6 +7,7 @@
 #include <thread>
 #include <vector>
 
+#include <fmt/format.h>
 #include <proxygen/httpserver/HTTPServer.h>
 
 namespace kimchi {

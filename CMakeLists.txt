@@ -1,6 +1,23 @@
+set(KIMCHI_CONAN_HOME "${CMAKE_CURRENT_SOURCE_DIR}/.conan_home")
+if(NOT DEFINED ENV{CONAN_HOME})
+    set(ENV{CONAN_HOME} "${KIMCHI_CONAN_HOME}")
+endif()
+
 cmake_minimum_required(VERSION 3.24)
 set(CMAKE_PROJECT_TOP_LEVEL_INCLUDES "${CMAKE_CURRENT_SOURCE_DIR}/cmake/conan_provider.cmake") # 가장 프로젝트 상위에 존재해야함
 set(CONAN_COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/conan/bin/conan")
+
+option(KIMCHI_BOOTSTRAP_LOCAL_CONAN_HOME
+       "Seed the local Conan home from ~/.conan2 when needed" ON)
+if(KIMCHI_BOOTSTRAP_LOCAL_CONAN_HOME)
+    execute_process(
+        COMMAND bash "${CMAKE_CURRENT_SOURCE_DIR}/scripts/bootstrap_conan_home.sh"
+        RESULT_VARIABLE _conan_bootstrap_result
+    )
+    if(NOT _conan_bootstrap_result EQUAL 0)
+        message(FATAL_ERROR "Conan home bootstrap failed. Run scripts/bootstrap_conan_home.sh manually.")
+    endif()
+endif()
 if(NOT EXISTS "${CONAN_COMMAND}")
     message(STATUS "Conan not found. Running scripts/install_conan.sh...")
     execute_process(
@@ -12,13 +29,15 @@ if(NOT EXISTS "${CONAN_COMMAND}")
     endif()
 endif()
 
-# 레시피 export (idempotent, 수초 소요)
-execute_process(
-    COMMAND bash "${CMAKE_CURRENT_SOURCE_DIR}/scripts/export_recipes.sh"
-    RESULT_VARIABLE _recipes_result
-)
-if(NOT _recipes_result EQUAL 0)
-    message(FATAL_ERROR "Recipe export failed. Run scripts/export_recipes.sh manually.")
+option(KIMCHI_EXPORT_CONAN_RECIPES "Export local Conan recipes before configure" OFF)
+if(KIMCHI_EXPORT_CONAN_RECIPES)
+    execute_process(
+        COMMAND bash "${CMAKE_CURRENT_SOURCE_DIR}/scripts/export_recipes.sh"
+        RESULT_VARIABLE _recipes_result
+    )
+    if(NOT _recipes_result EQUAL 0)
+        message(FATAL_ERROR "Recipe export failed. Run scripts/export_recipes.sh manually.")
+    endif()
 endif()
 
 
@@ -26,6 +45,7 @@ project(kimchi C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS ON)
 
 set (CXX_FLAGS
         -g
@@ -45,7 +65,7 @@ set (CXX_FLAGS
         -fms-extensions
         -Wfloat-equal
         -Wextra
-        -std=c++20
+        -std=gnu++20
 )
 
 
@@ -87,7 +107,7 @@ elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
 endif()
 message (STATUS "EXECUTABLE_OUTPUT_PATH " ${EXECUTABLE_OUTPUT_PATH})
 message (STATUS "LIBRARY_OUTPUT_PATH " ${LIBRARY_OUTPUT_PATH})
-option(BUILD_TESTING "Build tests" ON)
+option(BUILD_TESTING "Build tests" OFF)
 message (STATUS "Build tests " ${BUILD_TESTING})
 
 

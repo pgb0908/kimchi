@@ -47,9 +47,26 @@ set(KIMCHI_SOURCES
 
 add_executable(kimchi ${KIMCHI_SOURCES})
 
+string(TOUPPER "${CMAKE_BUILD_TYPE}" KIMCHI_BUILD_TYPE_UPPER)
+
 target_include_directories(kimchi PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
+
+foreach(_pkg folly proxygen wangle fizz mvfst glog gflags fmt)
+    set(_pkg_folder_var "${_pkg}_PACKAGE_FOLDER_${KIMCHI_BUILD_TYPE_UPPER}")
+    if(DEFINED ${_pkg_folder_var} AND EXISTS "${${_pkg_folder_var}}/include")
+        target_include_directories(kimchi PRIVATE "${${_pkg_folder_var}}/include")
+    endif()
+endforeach()
+
+set(KIMCHI_FOLLY_DEMANGLE_LIB "")
+if(DEFINED folly_PACKAGE_FOLDER_${KIMCHI_BUILD_TYPE_UPPER})
+    set(KIMCHI_FOLLY_DEMANGLE_LIB
+        "${folly_PACKAGE_FOLDER_${KIMCHI_BUILD_TYPE_UPPER}}/lib/libfolly_demangle.a")
+endif()
+
+find_library(KIMCHI_LIBIBERTY NAMES iberty)
 
 target_link_libraries(kimchi PRIVATE
     proxygen::proxygen
@@ -62,3 +79,9 @@ target_link_libraries(kimchi PRIVATE
     glog::glog
     gflags::gflags
 )
+
+if(EXISTS "${KIMCHI_FOLLY_DEMANGLE_LIB}" AND KIMCHI_LIBIBERTY)
+    target_link_libraries(kimchi PRIVATE
+        "$<LINK_GROUP:RESCAN,Folly::folly,${KIMCHI_FOLLY_DEMANGLE_LIB},${KIMCHI_LIBIBERTY}>"
+    )
+endif()

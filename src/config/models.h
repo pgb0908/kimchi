@@ -1,10 +1,12 @@
 #pragma once
 
 #include <cstdint>
+#include <cstring>
 #include <optional>
 #include <string>
 #include <vector>
 
+#include <fmt/format.h>
 #include <folly/dynamic.h>
 
 namespace kimchi::config {
