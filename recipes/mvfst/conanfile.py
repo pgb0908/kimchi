@@ -44,6 +44,13 @@ class MvfstConan(ConanFile):
         tc.cache_variables["BUILD_SAMPLES"] = "OFF"
         tc.cache_variables["BUILD_SHARED_LIBS"] = "ON" if self.options.shared else "OFF"
         tc.cache_variables["CMAKE_POLICY_VERSION_MINIMUM"] = "3.5"
+        tc.cache_variables["folly_DIR"] = os.path.join(
+            self.dependencies["folly"].package_folder, "lib", "cmake", "folly"
+        )
+        tc.cache_variables["fizz_DIR"] = os.path.join(
+            self.dependencies["fizz"].package_folder, "lib", "cmake", "fizz"
+        )
+        tc.cache_variables["Fizz_DIR"] = tc.cache_variables["fizz_DIR"]
         tc.generate()
         self._patch_glog_data()
 
@@ -111,4 +118,16 @@ class MvfstConan(ConanFile):
         self.cpp_info.set_property("cmake_file_name", "mvfst")
         self.cpp_info.set_property("cmake_target_name", "mvfst::mvfst")
         self.cpp_info.builddirs = ["lib/cmake/mvfst"]
-        self.cpp_info.libs = collect_libs(self)
+        self.cpp_info.components["mvfst"].set_property(
+            "cmake_target_name", "mvfst::mvfst"
+        )
+        self.cpp_info.components["mvfst"].libs = collect_libs(self)
+        self.cpp_info.components["mvfst"].requires = [
+            "fizz::fizz",
+            "folly::folly",
+            "glog::glog",
+            "gflags::gflags",
+            "libevent::libevent",
+            "openssl::openssl",
+            "zlib::zlib",
+        ]

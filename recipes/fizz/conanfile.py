@@ -40,6 +40,9 @@ class FizzConan(ConanFile):
         tc = CMakeToolchain(self)
         for key, value in self._cmake_configure_variables().items():
             tc.cache_variables[key] = value
+        tc.cache_variables["folly_DIR"] = os.path.join(
+            self.dependencies["folly"].package_folder, "lib", "cmake", "folly"
+        )
         tc.generate()
 
     def _cmake_configure_variables(self):
@@ -117,4 +120,19 @@ class FizzConan(ConanFile):
         self.cpp_info.set_property("cmake_file_name", "fizz")
         self.cpp_info.set_property("cmake_target_name", "fizz::fizz")
         self.cpp_info.builddirs = ["lib/cmake/fizz"]
-        self.cpp_info.libs = ["fizz"]
+        self.cpp_info.components["fizz"].set_property(
+            "cmake_target_name", "fizz::fizz"
+        )
+        self.cpp_info.components["fizz"].libs = ["fizz"]
+        self.cpp_info.components["fizz"].requires = [
+            "folly::folly",
+            "libsodium::libsodium",
+            "zstd::zstdlib",
+            "fmt::fmt",
+            "glog::glog",
+            "gflags::gflags",
+            "libevent::libevent",
+            "openssl::openssl",
+            "zlib::zlib",
+        ]
+        self.cpp_info.components["fizz"].system_libs = ["dl", "rt"]

@@ -70,12 +70,41 @@ class FollyConan(ConanFile):
         cmake.install()
 
     def package_info(self):
-        # consumer에서는 CMakeDeps 래퍼를 통해 find_package(folly) 동작.
-        # 내부 빌드(conan create)에서는 builddirs의 native config가 사용되어
-        # Folly::folly, Folly::folly_range 등 세분화된 타깃을 제공.
         self.cpp_info.set_property("cmake_find_mode", "both")
         self.cpp_info.set_property("cmake_file_name", "folly")
         self.cpp_info.set_property("cmake_target_name", "Folly::folly")
         self.cpp_info.builddirs = ["lib/cmake/folly"]
-        self.cpp_info.libs = ["folly"]
-        self.cpp_info.system_libs = ["pthread", "dl"]
+        self.cpp_info.components["folly_demangle"].set_property(
+            "cmake_target_name", "Folly::folly_demangle"
+        )
+        self.cpp_info.components["folly_demangle"].libs = ["folly_demangle"]
+        self.cpp_info.components["folly_demangle"].system_libs = ["iberty"]
+
+        self.cpp_info.components["folly"].set_property(
+            "cmake_target_name", "Folly::folly"
+        )
+        self.cpp_info.components["folly"].libs = ["folly"]
+        self.cpp_info.components["folly"].requires = [
+            "folly_demangle",
+            "fmt::fmt",
+            "double-conversion::double-conversion",
+            "gflags::gflags",
+            "glog::glog",
+            "libevent::libevent",
+            "openssl::openssl",
+            "zlib::zlib",
+            "fast_float::fast_float",
+            "boost::context",
+            "boost::filesystem",
+            "boost::program_options",
+            "boost::regex",
+            "boost::system",
+            "boost::thread",
+            "libsodium::libsodium",
+            "lz4::lz4",
+            "zstd::zstdlib",
+            "bzip2::bzip2",
+            "xz_utils::xz_utils",
+            "snappy::snappy",
+        ]
+        self.cpp_info.components["folly"].system_libs = ["pthread", "dl", "rt"]

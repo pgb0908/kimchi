@@ -35,6 +35,13 @@ class WangleConan(ConanFile):
         tc = CMakeToolchain(self)
         for key, value in self._cmake_configure_variables().items():
             tc.cache_variables[key] = value
+        tc.cache_variables["folly_DIR"] = os.path.join(
+            self.dependencies["folly"].package_folder, "lib", "cmake", "folly"
+        )
+        tc.cache_variables["fizz_DIR"] = os.path.join(
+            self.dependencies["fizz"].package_folder, "lib", "cmake", "fizz"
+        )
+        tc.cache_variables["Fizz_DIR"] = tc.cache_variables["fizz_DIR"]
         tc.generate()
 
     def _cmake_configure_variables(self):
@@ -85,4 +92,12 @@ class WangleConan(ConanFile):
         self.cpp_info.set_property("cmake_file_name", "wangle")
         self.cpp_info.set_property("cmake_target_name", "wangle::wangle")
         self.cpp_info.builddirs = ["lib/cmake/wangle"]
-        self.cpp_info.libs = ["wangle"]
+        self.cpp_info.components["wangle"].set_property(
+            "cmake_target_name", "wangle::wangle"
+        )
+        self.cpp_info.components["wangle"].libs = ["wangle"]
+        self.cpp_info.components["wangle"].requires = [
+            "folly::folly",
+            "fizz::fizz",
+            "openssl::openssl",
+        ]

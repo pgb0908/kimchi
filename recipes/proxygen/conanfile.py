@@ -43,6 +43,20 @@ class ProxygenConan(ConanFile):
         tc = CMakeToolchain(self)
         for key, value in self._cmake_configure_variables().items():
             tc.cache_variables[key] = value
+        tc.cache_variables["folly_DIR"] = os.path.join(
+            self.dependencies["folly"].package_folder, "lib", "cmake", "folly"
+        )
+        tc.cache_variables["fizz_DIR"] = os.path.join(
+            self.dependencies["fizz"].package_folder, "lib", "cmake", "fizz"
+        )
+        tc.cache_variables["Fizz_DIR"] = tc.cache_variables["fizz_DIR"]
+        tc.cache_variables["wangle_DIR"] = os.path.join(
+            self.dependencies["wangle"].package_folder, "lib", "cmake", "wangle"
+        )
+        tc.cache_variables["Wangle_DIR"] = tc.cache_variables["wangle_DIR"]
+        tc.cache_variables["mvfst_DIR"] = os.path.join(
+            self.dependencies["mvfst"].package_folder, "lib", "cmake", "mvfst"
+        )
         tc.generate()
         self._patch_glog_data()
 
@@ -126,7 +140,6 @@ class ProxygenConan(ConanFile):
         self.cpp_info.set_property("cmake_file_name", "proxygen")
         self.cpp_info.set_property("cmake_target_name", "proxygen::proxygen")
         self.cpp_info.builddirs = ["lib/cmake/proxygen"]
-        self.cpp_info.libs = ["proxygen"]
         self.cpp_info.components["proxygenhttpserver"].set_property(
             "cmake_target_name", "proxygen::proxygenhttpserver"
         )
@@ -136,3 +149,16 @@ class ProxygenConan(ConanFile):
             "cmake_target_name", "proxygen::proxygen"
         )
         self.cpp_info.components["proxygen"].libs = ["proxygen"]
+        self.cpp_info.components["proxygen"].requires = [
+            "wangle::wangle",
+            "mvfst::mvfst",
+            "fizz::fizz",
+            "folly::folly",
+            "fmt::fmt",
+            "glog::glog",
+            "gflags::gflags",
+            "libevent::libevent",
+            "openssl::openssl",
+            "zlib::zlib",
+            "c-ares::cares",
+        ]
