@@ -7,6 +7,7 @@ set(KIMCHI_SOURCES
     server/admin_server.cpp
     handler/gateway_handler.cpp
     handler/gateway_handler_factory.cpp
+    handler/upstream_client.cpp
     handler/admin_handler.cpp
     handler/admin_handler_factory.cpp
     filter/auth_filter.cpp

@@ -15,7 +15,7 @@ class FollyConan(ConanFile):
 
     def requirements(self):
         self.requires("openssl/3.3.2", transitive_headers=True, transitive_libs=True)
-        self.requires("zlib/1.3.2", transitive_headers=True, transitive_libs=True)
+        self.requires("zlib/1.3.1", transitive_headers=True, transitive_libs=True)
         self.requires("fmt/12.1.0", transitive_headers=True, transitive_libs=True)
         self.requires("gflags/2.2.2", transitive_headers=True, transitive_libs=True)
         self.requires("glog/0.7.1", transitive_headers=True, transitive_libs=True)

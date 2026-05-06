@@ -3,7 +3,9 @@
 #include "config/models.h"
 
 #include <memory>
+#include <regex>
 
+#include <folly/io/IOBuf.h>
 #include <proxygen/httpserver/RequestHandler.h>
 #include <proxygen/lib/http/HTTPMessage.h>
 
@@ -23,6 +25,7 @@ public:
 private:
     std::shared_ptr<const config::ConfigStore> store_;
     std::unique_ptr<proxygen::HTTPMessage> requestHeaders_;
+    std::unique_ptr<folly::IOBuf> requestBody_;
 };
 
 } // namespace kimchi
