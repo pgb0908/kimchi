@@ -10,8 +10,6 @@ build/
 build-release/
 
 # Conan
-.conan_home/
-.conan_home.bak*/
 conan/dependency_graph.png
 graph.html
 

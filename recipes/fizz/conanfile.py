@@ -21,7 +21,7 @@ class FizzConan(ConanFile):
         self.requires("glog/0.7.1")
         self.requires("gflags/2.2.2")
         self.requires("zstd/1.5.5")
-        self.requires("zlib/1.3.1")
+        self.requires("zlib/1.3.2")
         self.requires("libevent/2.1.12")
 
     def layout(self):

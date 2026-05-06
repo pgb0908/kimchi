@@ -15,7 +15,7 @@ class FollyConan(ConanFile):
 
     def requirements(self):
         self.requires("openssl/3.3.2", transitive_headers=True, transitive_libs=True)
-        self.requires("zlib/1.3.1", transitive_headers=True, transitive_libs=True)
+        self.requires("zlib/1.3.2", transitive_headers=True, transitive_libs=True)
         self.requires("fmt/12.1.0", transitive_headers=True, transitive_libs=True)
         self.requires("gflags/2.2.2", transitive_headers=True, transitive_libs=True)
         self.requires("glog/0.7.1", transitive_headers=True, transitive_libs=True)
@@ -28,7 +28,7 @@ class FollyConan(ConanFile):
         self.requires("bzip2/1.0.8", transitive_headers=True, transitive_libs=True)
         self.requires("xz_utils/[>=5.4.5 <6]", transitive_headers=True, transitive_libs=True)
         self.requires("snappy/1.1.10", transitive_headers=True, transitive_libs=True)
-        self.requires("fast_float/8.1.0", transitive_headers=True, transitive_libs=True)
+        self.requires("fast_float/8.1.0", visible=False, headers=True, libs=False)
 
     def layout(self):
         cmake_layout(self)
@@ -93,7 +93,6 @@ class FollyConan(ConanFile):
             "libevent::libevent",
             "openssl::openssl",
             "zlib::zlib",
-            "fast_float::fast_float",
             "boost::context",
             "boost::filesystem",
             "boost::program_options",

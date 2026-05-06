@@ -19,7 +19,7 @@ class ProxygenConan(ConanFile):
         self.requires(f"wangle/{self.version}")
         self.requires(f"mvfst/{self.version}")
         self.requires("openssl/3.3.2")
-        self.requires("zlib/1.3.1")
+        self.requires("zlib/1.3.2")
         self.requires("fmt/12.1.0")
         self.requires("glog/0.7.1")
         self.requires("gflags/2.2.2")

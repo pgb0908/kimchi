@@ -134,6 +134,6 @@ cmake_language(
 message(STATUS "TEST")
 set(CONAN_HOST_PROFILE "default;auto-cmake" CACHE STRING "Conan host profile")
 set(CONAN_BUILD_PROFILE "default" CACHE STRING "Conan build profile")
-set(CONAN_INSTALL_ARGS "-nr" CACHE STRING "Command line arguments for conan install")
+set(CONAN_INSTALL_ARGS "--build=missing" CACHE STRING "Command line arguments for conan install")
 
 cmake_policy(POP)

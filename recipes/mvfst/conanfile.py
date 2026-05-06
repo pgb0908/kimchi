@@ -21,7 +21,7 @@ class MvfstConan(ConanFile):
         self.requires("libevent/2.1.12")
         self.requires("glog/0.7.1")
         self.requires("gflags/2.2.2")
-        self.requires("zlib/1.3.1")
+        self.requires("zlib/1.3.2")
 
     def layout(self):
         cmake_layout(self)
