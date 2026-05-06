@@ -1,6 +1,7 @@
 #pragma once
 
 #include "config/models.h"
+#include "filter/rate_limit_store.h"
 
 #include <memory>
 
@@ -21,6 +22,7 @@ public:
 
 private:
     std::shared_ptr<const config::ConfigStore> store_;
+    std::shared_ptr<RateLimitStore> rateLimitStore_;
 };
 
 } // namespace kimchi

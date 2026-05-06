@@ -9,6 +9,9 @@ set(KIMCHI_SOURCES
     handler/gateway_handler_factory.cpp
     handler/admin_handler.cpp
     handler/admin_handler_factory.cpp
+    filter/auth_filter.cpp
+    filter/header_filter.cpp
+    filter/rate_limit_filter.cpp
 )
 
 add_executable(kimchi ${KIMCHI_SOURCES})
