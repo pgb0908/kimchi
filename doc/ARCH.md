@@ -51,3 +51,20 @@ Client
                │   활성화/롤백 결정)           │
                └─────────────────────────────┘
 ```
+
+
+요청 흐름
+
+```aiexclude
+  Factory[0]: UpstreamHnadlerFactory(현재 GatewayHandlerFactory)
+    → UpstreamHandler(store) 생성 
+   
+  Factory[1]: PolicyFilterFactory
+    → Policy 체인을 감싸서 반환
+    → PolicyFilter_N → ... → PolicyFilter_1
+    
+  Factory[2]: RouterFactory
+    → matched_router
+```
+
+요청 도달: Router → PolicyFilter_1(outermost) → ... → UpstreamHandler
