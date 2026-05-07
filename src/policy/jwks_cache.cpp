@@ -95,18 +95,18 @@ std::shared_ptr<JwksCache> JwksCache::fetch(const config::JwtConfig& cfg) {
 
     if (uri.scheme() != "http") {
         throw std::runtime_error(
-            "JWKS URI scheme '" + uri.scheme().toStdString() +
+            "JWKS URI scheme '" + uri.scheme() +
             "' is not supported (only 'http' in v1); got: " + cfg.jwksUri);
     }
 
-    std::string host = uri.host().toStdString();
+    const std::string& host = uri.host();
     uint16_t port = uri.port() ? static_cast<uint16_t>(uri.port()) : 80;
-    std::string path = uri.path().toStdString();
+    std::string path = uri.path();
     if (path.empty()) path = "/";
 
     const auto& qs = uri.query();
     if (!qs.empty()) {
-        path += "?" + qs.toStdString();
+        path += "?" + qs;
     }
 
     LOG(INFO) << "Fetching JWKS from " << host << ":" << port << path;

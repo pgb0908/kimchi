@@ -1,18 +1,20 @@
 #include "policy/jwt_policy.h"
-
-#include <jwt-cpp/jwt.h>
+#include "policy/folly_jwt_traits.h"
 
 #include <glog/logging.h>
 #include <proxygen/lib/http/HTTPMessage.h>
 
 namespace kimchi {
 
+namespace {
+using JwtTraits = jwt::traits::folly_dynamic;
+} // namespace
+
 void JwtPolicy::onRequest(
     std::unique_ptr<proxygen::HTTPMessage> msg) noexcept {
 
     const auto& cfg = jwks_->jwtConfig();
 
-    // Extract token from Authorization: Bearer <token>
     const std::string authHeader =
         msg->getHeaders().getSingleOrEmpty("Authorization");
 
@@ -33,10 +35,9 @@ void JwtPolicy::onRequest(
     const std::string token = authHeader.substr(kBearer.size());
 
     try {
-        auto decoded = jwt::decode(token);
+        auto decoded = jwt::decode<JwtTraits>(token);
 
-        // Select key from JWKS by kid (falls back to first key if absent)
-        auto jwks = jwt::parse_jwks(jwks_->jwksJson());
+        auto jwks = jwt::parse_jwks<JwtTraits>(jwks_->jwksJson());
 
         std::string pubKeyPem;
         if (decoded.has_key_id()) {
@@ -57,7 +58,9 @@ void JwtPolicy::onRequest(
             pubKeyPem = keys.front().get_rsa_key();
         }
 
-        auto verifier = jwt::verify().allow_algorithm(jwt::algorithm::rs256(pubKeyPem));
+        auto verifier =
+            jwt::verify<jwt::default_clock, JwtTraits>(jwt::default_clock{})
+                .allow_algorithm(jwt::algorithm::rs256(pubKeyPem));
 
         if (!cfg.issuer.empty()) {
             verifier = verifier.with_issuer(cfg.issuer);
@@ -68,14 +71,12 @@ void JwtPolicy::onRequest(
 
         verifier.verify(decoded);
 
-        // Inject verified identity into upstream headers
         auto& hdrs = msg->getHeaders();
         hdrs.set("x-jwt-subject", decoded.get_subject());
         if (decoded.has_issuer()) {
             hdrs.set("x-jwt-issuer", decoded.get_issuer());
         }
         hdrs.set("x-auth-method", "jwt");
-        // Remove original Authorization header so upstream doesn't re-validate
         hdrs.remove("Authorization");
 
         Filter::onRequest(std::move(msg));
