@@ -54,3 +54,4 @@ class ConanApplication(ConanFile):
         self.requires("gflags/2.2.2")
         self.requires(f"proxygen/{self._meta_version()}")
         self.requires("zlib/1.3.1", override=True)
+        self.requires("jwt-cpp/0.7.0")

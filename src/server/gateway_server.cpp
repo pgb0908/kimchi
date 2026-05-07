@@ -1,6 +1,7 @@
 #include "server/gateway_server.h"
 #include "handler/gateway_handler_factory.h"
 
+#include <map>
 #include <thread>
 
 #include <folly/SocketAddress.h>
@@ -10,13 +11,15 @@
 namespace kimchi {
 
 GatewayServer::GatewayServer(const std::vector<config::ListenerConfig>& listeners,
-                             std::shared_ptr<const config::ConfigStore> store) {
+                             std::shared_ptr<const config::ConfigStore> store,
+                             std::map<std::string, std::shared_ptr<JwksCache>> jwksCaches) {
     proxygen::HTTPServerOptions opts;
     opts.threads = std::thread::hardware_concurrency();
     opts.idleTimeout = std::chrono::milliseconds(60'000);
     opts.shutdownOn = {SIGINT, SIGTERM};
     opts.handlerFactories.emplace_back(
-        std::make_unique<GatewayHandlerFactory>(std::move(store)));
+        std::make_unique<GatewayHandlerFactory>(std::move(store),
+                                                std::move(jwksCaches)));
 
     std::vector<proxygen::HTTPServer::IPConfig> ipConfigs;
     for (const auto& listener : listeners) {

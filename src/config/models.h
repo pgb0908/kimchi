@@ -102,6 +102,7 @@ struct RouterConfig {
     std::string targetRefName;
     std::vector<RouterRule> rules;
     std::vector<RouterDestination> destinations;
+    std::vector<std::string> policies;  // policy resource names (ordered)
 
     static RouterConfig fromJson(const folly::dynamic& d);
 };
@@ -123,6 +124,33 @@ struct GatewayConfig {
     static GatewayConfig fromJson(const folly::dynamic& d);
 };
 
+// ── Policy ────────────────────────────────────────────────────────────────────
+
+struct JwtConfig {
+    std::string jwksUri;
+    std::string issuer;
+    std::string audience;
+    int32_t cacheTtlSeconds = 300;
+};
+
+struct SecurityPolicySpec {
+    std::optional<JwtConfig> jwt;
+};
+
+struct PolicySpec {
+    int32_t order = 0;
+    std::optional<SecurityPolicySpec> security;
+};
+
+struct PolicyConfig {
+    std::string apiVersion;
+    std::string kind;
+    Metadata metadata;
+    PolicySpec spec;
+
+    static PolicyConfig fromJson(const folly::dynamic& d);
+};
+
 // ── Aggregate ─────────────────────────────────────────────────────────────────
 
 struct ConfigStore {
@@ -130,6 +158,7 @@ struct ConfigStore {
     std::vector<ListenerConfig> listeners;
     std::vector<RouterConfig> routers;
     std::vector<ServiceConfig> services;
+    std::vector<PolicyConfig> policies;
 };
 
 } // namespace kimchi::config

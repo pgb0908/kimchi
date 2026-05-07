@@ -155,6 +155,41 @@ RouterConfig RouterConfig::fromJson(const folly::dynamic& d) {
         }
     }
 
+    if (auto* pols = spec.get_ptr("policies")) {
+        for (const auto& p : *pols) {
+            cfg.policies.push_back(p.getString());
+        }
+    }
+
+    return cfg;
+}
+
+PolicyConfig PolicyConfig::fromJson(const folly::dynamic& d) {
+    PolicyConfig cfg;
+    cfg.apiVersion = getStr(d, "apiVersion");
+    cfg.kind = getStr(d, "kind");
+
+    if (auto* meta = d.get_ptr("metadata")) {
+        cfg.metadata = Metadata::fromJson(*meta);
+    }
+
+    const auto& spec = d["spec"];
+    cfg.spec.order = static_cast<int32_t>(getInt(spec, "order", 0));
+
+    if (auto* sec = spec.get_ptr("security")) {
+        SecurityPolicySpec secSpec;
+        if (auto* jwt = sec->get_ptr("jwt")) {
+            JwtConfig jwtCfg;
+            jwtCfg.jwksUri = getStr(*jwt, "jwksUri");
+            jwtCfg.issuer = getStr(*jwt, "issuer");
+            jwtCfg.audience = getStr(*jwt, "audience");
+            jwtCfg.cacheTtlSeconds =
+                static_cast<int32_t>(getInt(*jwt, "cacheTtlSeconds", 300));
+            secSpec.jwt = std::move(jwtCfg);
+        }
+        cfg.spec.security = std::move(secSpec);
+    }
+
     return cfg;
 }
 
@@ -202,6 +237,9 @@ void ConfigLoader::dispatchDocument(const folly::dynamic& doc, ConfigStore& stor
     } else if (kind == "Gateway") {
         store.gateway = GatewayConfig::fromJson(doc);
         LOG(INFO) << "Loaded Gateway: " << store.gateway->metadata.name;
+    } else if (kind == "Policy") {
+        store.policies.push_back(PolicyConfig::fromJson(doc));
+        LOG(INFO) << "Loaded Policy: " << store.policies.back().metadata.name;
     } else if (kind == "MockingService") {
         LOG(WARNING) << "MockingService kind not yet implemented, skipping";
     } else {

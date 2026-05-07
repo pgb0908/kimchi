@@ -6,26 +6,27 @@
 
 proxygen은 단독으로 동작하지 않고 Meta의 세 라이브러리 위에 쌓인 구조입니다.
 
-```
-┌──────────────────────────────────────────────────────────┐
-│                       proxygen                           │
-│         HTTP/1.1 · HTTP/2 · HTTP/3 프로토콜 처리         │
-│         RequestHandler · Filter · HTTPServer             │
-└───────────────────────────┬──────────────────────────────┘
-                            │ 연결·파이프라인 관리 위임
-┌───────────────────────────▼──────────────────────────────┐
-│                        wangle                            │
-│         연결 수락 · 파이프라인 · 코덱 추상화             │
-│         Acceptor · Pipeline · HandlerContext             │
-└──────────────┬────────────────────────┬──────────────────┘
-               │ TLS 핸드셰이크 위임    │ 이벤트 루프·버퍼 사용
-┌──────────────▼──────────┐  ┌──────────▼──────────────────┐
-│          fizz           │  │           folly             │
-│  TLS 1.3 구현           │  │  EventBase (이벤트 루프)    │
-│  인증서·암호화·복호화   │  │  IOBuf     (제로카피 버퍼)  │
-│  0-RTT · ALPN 협상      │  │  Future/Promise             │
-└─────────────────────────┘  │  ThreadPoolExecutor         │
-                             └─────────────────────────────┘
+```mermaid
+flowchart TD
+    %% 노드 정의
+    proxygen["<b>proxygen</b><br/>HTTP/1.1 · HTTP/2 · HTTP/3 프로토콜 처리<br/>RequestHandler · Filter · HTTPServer"]
+    
+    wangle["<b>wangle</b><br/>연결 수락 · 파이프라인 · 코덱 추상화<br/>Acceptor · Pipeline · HandlerContext"]
+    
+    fizz["<b>fizz</b><br/>TLS 1.3 구현<br/>인증서 · 암호화 · 복호화<br/>0-RTT · ALPN 협상"]
+    
+    folly["<b>folly</b><br/>EventBase (이벤트 루프)<br/>IOBuf (제로카피 버퍼)<br/>Future/Promise<br/>ThreadPoolExecutor"]
+
+    %% 연결 관계 및 설명
+    proxygen -->|"연결·파이프라인 관리 위임"| wangle
+    wangle -->|"TLS 핸드셰이크 위임"| fizz
+    wangle -->|"이벤트 루프·버퍼 사용"| folly
+
+    %% 스타일링
+    style proxygen fill:#fff,stroke:#333,stroke-width:1px
+    style wangle fill:#fff,stroke:#333,stroke-width:1px
+    style fizz fill:#fff,stroke:#333,stroke-width:1px
+    style folly fill:#fff,stroke:#333,stroke-width:1px
 ```
 
 ### 각 라이브러리 역할
@@ -94,17 +95,32 @@ proxygen은 단독으로 동작하지 않고 Meta의 세 라이브러리 위에 
 
 ### 체인 구조
 
-```
-  클라이언트                                              앱
-      │                                                   │
-      │     ┌─────────────┐   ┌─────────────┐   ┌──────────────┐
-      │     │  Filter-A   │   │  Filter-B   │   │  AppHandler  │
-      ├────►│             ├──►│             ├──►│              │
-  요청│     │  upstream_──┼──►│  upstream_──┼──►│              │
-      │     │             │   │             │   │              │
-      │     │ downstream_ │   │ downstream_ │   │  downstream_ │
-      │◄────┼─────────────┼◄──┼─────────────┼◄──┼──────────────┤
-  응답│     └─────────────┘   └─────────────┘   └──────────────┘
+```mermaid
+flowchart LR
+%% 노드 정의
+    Client([클라이언트])
+
+    subgraph AppServer ["앱 (Server Stack)"]
+        direction LR
+        FilterA["<b>Filter-A</b><hr/>upstream_ ▶<br/>◀ downstream_"]
+        FilterB["<b>Filter-B</b><hr/>upstream_ ▶<br/>◀ downstream_"]
+        AppHandler["<b>AppHandler</b><hr/>(Business Logic)<br/>◀ downstream_"]
+    end
+
+%% 요청 흐름 (Upstream)
+    Client -- "요청 (Request)" --> FilterA
+    FilterA -- "upstream" --> FilterB
+    FilterB -- "upstream" --> AppHandler
+
+%% 응답 흐름 (Downstream)
+    AppHandler -- "downstream" --> FilterB
+    FilterB -- "downstream" --> FilterA
+    FilterA -- "응답 (Response)" --> Client
+
+%% 스타일 설정
+    style Client fill:#f9f9f9,stroke:#333,stroke-width:2px
+    style AppServer fill:#ffffff,stroke:#333,stroke-dasharray: 5 5
+    style AppHandler fill:#e1f5fe,stroke:#01579b
 ```
 
 - **upstream_**: 다음 핸들러를 가리키는 포인터 (요청 방향 →)

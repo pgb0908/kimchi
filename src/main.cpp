@@ -1,6 +1,11 @@
 #include "config/loader.h"
+#include "policy/jwks_cache.h"
 #include "server/admin_server.h"
 #include "server/gateway_server.h"
+
+#include <map>
+#include <memory>
+#include <string>
 
 #include <gflags/gflags.h>
 #include <glog/logging.h>
@@ -23,6 +28,23 @@ int main(int argc, char* argv[]) {
 
     auto store = kimchi::config::ConfigLoader::loadFromDirectory(FLAGS_config_dir);
 
+    // Fetch JWKS for all Policy resources with JWT security spec.
+    // This must succeed before accepting any traffic.
+    std::map<std::string, std::shared_ptr<kimchi::JwksCache>> jwksCaches;
+    for (const auto& policy : store.policies) {
+        if (!policy.spec.security || !policy.spec.security->jwt) continue;
+
+        const auto& jwtCfg = *policy.spec.security->jwt;
+        LOG(INFO) << "Fetching JWKS for policy '" << policy.metadata.name
+                  << "' from " << jwtCfg.jwksUri;
+        try {
+            jwksCaches[policy.metadata.name] = kimchi::JwksCache::fetch(jwtCfg);
+        } catch (const std::exception& e) {
+            LOG(FATAL) << "Failed to fetch JWKS for policy '"
+                       << policy.metadata.name << "': " << e.what();
+        }
+    }
+
     auto sharedConfig = std::make_shared<kimchi::SharedConfig>();
     sharedConfig->current =
         std::make_shared<kimchi::config::ConfigStore>(std::move(store));
@@ -44,7 +66,8 @@ int main(int argc, char* argv[]) {
     kimchi::AdminServer admin(static_cast<uint16_t>(FLAGS_admin_port),
                               FLAGS_config_dir, sharedConfig);
 
-    kimchi::GatewayServer gateway(listeners, sharedConfig->current);
+    kimchi::GatewayServer gateway(listeners, sharedConfig->current,
+                                  std::move(jwksCaches));
 
     admin.start([] { LOG(INFO) << "Admin API ready"; });
     gateway.start([] { LOG(INFO) << "Data plane ready"; });
