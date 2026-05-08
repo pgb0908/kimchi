@@ -9,8 +9,11 @@
 namespace kimchi {
 
 GatewayHandler::GatewayHandler(config::RouterConfig router,
-                               std::shared_ptr<const config::ConfigStore> store)
-    : router_(std::move(router)), store_(std::move(store)) {}
+                               const config::ServiceConfig* service,
+                               folly::SocketAddress upstreamAddr)
+    : router_(std::move(router)),
+      service_(service),
+      upstreamAddr_(std::move(upstreamAddr)) {}
 
 void GatewayHandler::onRequest(
     std::unique_ptr<proxygen::HTTPMessage> req) noexcept {
@@ -29,37 +32,8 @@ void GatewayHandler::onBody(
 }
 
 void GatewayHandler::onEOM() noexcept {
-    if (router_.destinations.empty()) {
-        proxygen::ResponseBuilder(downstream_)
-            .status(502, "Bad Gateway")
-            .header("Content-Type", "application/json")
-            .body(R"({"error":"bad_gateway","message":"router has no destinations"})")
-            .sendWithEOM();
-        return;
-    }
-
     const auto& dest = router_.destinations[0];
-
-    // Service lookup
-    const config::ServiceConfig* svc = nullptr;
-    for (const auto& s : store_->services) {
-        if (s.metadata.name == dest.destinationName) {
-            svc = &s;
-            break;
-        }
-    }
-
-    if (!svc || svc->loadBalancing.targets.empty()) {
-        LOG(ERROR) << "upstream service not found: " << dest.destinationName;
-        proxygen::ResponseBuilder(downstream_)
-            .status(502, "Bad Gateway")
-            .header("Content-Type", "application/json")
-            .body(R"({"error":"bad_gateway","message":"upstream service not configured"})")
-            .sendWithEOM();
-        return;
-    }
-
-    const auto& target = svc->loadBalancing.targets[0];
+    const auto& target = service_->loadBalancing.targets[0];
 
     auto upstreamReq = std::make_unique<proxygen::HTTPMessage>();
     upstreamReq->setMethod(requestHeaders_->getMethodString());
@@ -84,8 +58,8 @@ void GatewayHandler::onEOM() noexcept {
         hostHeader = dest.rewrite->host;
     } else {
         bool isDefaultPort =
-            (svc->protocol == "HTTP" && target.port == 80) ||
-            (svc->protocol == "HTTPS" && target.port == 443);
+            (service_->protocol == "HTTP"  && target.port == 80) ||
+            (service_->protocol == "HTTPS" && target.port == 443);
         hostHeader = isDefaultPort
             ? target.host
             : fmt::format("{}:{}", target.host, target.port);
@@ -93,23 +67,9 @@ void GatewayHandler::onEOM() noexcept {
     upstreamReq->getHeaders().set(proxygen::HTTP_HEADER_HOST, hostHeader);
 
     folly::EventBase* evb = folly::EventBaseManager::get()->getEventBase();
-    folly::SocketAddress addr;
-    try {
-        addr.setFromHostPort(target.host, target.port);
-    } catch (const std::exception& e) {
-        LOG(ERROR) << "invalid upstream address " << target.host << ":"
-                   << target.port << ": " << e.what();
-        proxygen::ResponseBuilder(downstream_)
-            .status(502, "Bad Gateway")
-            .header("Content-Type", "application/json")
-            .body(R"({"error":"bad_gateway","message":"invalid upstream address"})")
-            .sendWithEOM();
-        return;
-    }
-
     auto* client = new UpstreamClient(downstream_, evb, std::move(upstreamReq),
                                       std::move(requestBody_));
-    client->connect(addr);
+    client->connect(upstreamAddr_);
 }
 
 void GatewayHandler::onUpgrade(proxygen::UpgradeProtocol /*prot*/) noexcept {

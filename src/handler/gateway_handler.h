@@ -4,6 +4,7 @@
 
 #include <memory>
 
+#include <folly/SocketAddress.h>
 #include <folly/io/IOBuf.h>
 #include <proxygen/httpserver/RequestHandler.h>
 #include <proxygen/lib/http/HTTPMessage.h>
@@ -11,11 +12,13 @@
 namespace kimchi {
 
 // Forwards the request to the upstream service specified by the pre-matched
-// RouterConfig. Router matching is the factory's responsibility.
+// RouterConfig. service_ and upstreamAddr_ are pre-resolved at factory
+// construction time to eliminate per-request DNS and service lookup costs.
 class GatewayHandler : public proxygen::RequestHandler {
 public:
     GatewayHandler(config::RouterConfig router,
-                   std::shared_ptr<const config::ConfigStore> store);
+                   const config::ServiceConfig* service,
+                   folly::SocketAddress upstreamAddr);
 
     void onRequest(std::unique_ptr<proxygen::HTTPMessage> headers) noexcept override;
     void onBody(std::unique_ptr<folly::IOBuf> body) noexcept override;
@@ -26,7 +29,8 @@ public:
 
 private:
     config::RouterConfig router_;
-    std::shared_ptr<const config::ConfigStore> store_;
+    const config::ServiceConfig* service_;
+    folly::SocketAddress upstreamAddr_;
     std::unique_ptr<proxygen::HTTPMessage> requestHeaders_;
     std::unique_ptr<folly::IOBuf> requestBody_;
 };

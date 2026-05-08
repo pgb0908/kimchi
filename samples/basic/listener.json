@@ -1,0 +1,12 @@
+{
+  "apiVersion": "kimchi/v1",
+  "kind": "Listener",
+  "metadata": {
+    "name": "default-listener"
+  },
+  "spec": {
+    "protocol": "HTTP",
+    "port": 18000,
+    "host": "0.0.0.0"
+  }
+}

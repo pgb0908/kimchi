@@ -11,6 +11,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include <folly/SocketAddress.h>
 #include <proxygen/httpserver/RequestHandlerFactory.h>
 
 namespace kimchi {
@@ -29,6 +30,7 @@ public:
         proxygen::HTTPMessage* msg) noexcept override;
 
 private:
+    // Routing tables
     struct ExactRoute {
         std::vector<std::string> methods;
         size_t routerIndex;
@@ -44,18 +46,26 @@ private:
         size_t routerIndex;
     };
 
+    // Service cache: pre-resolved at startup to eliminate per-request
+    // DNS lookups and O(n) service scans.
+    struct CachedService {
+        const config::ServiceConfig* config;
+        std::vector<folly::SocketAddress> addrs;  // one per target, same order
+    };
+
     static bool methodMatches(const std::vector<std::string>& allowed,
                                const std::string& method);
 
     std::shared_ptr<const config::ConfigStore> store_;
     PolicyEngine engine_;
 
-    // Exact: O(1) hash lookup
+    // Routing
     std::unordered_map<std::string, std::vector<ExactRoute>> exactRoutes_;
-    // Prefix: sorted longest-first for longest-match semantics
     std::vector<PrefixRoute> prefixRoutes_;
-    // Regex: sequential scan, registration order preserved
     std::vector<RegexRoute> regexRoutes_;
+
+    // Service lookup cache (name → pre-resolved)
+    std::unordered_map<std::string, CachedService> serviceCache_;
 };
 
 } // namespace kimchi
