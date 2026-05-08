@@ -7,34 +7,15 @@
   "spec": {
     "rules": [
       {
-        "path": "/get",
+        "path": "/test",
         "pathType": "Exact",
         "methods": ["GET"]
-      },
-      {
-        "path": "/post",
-        "pathType": "Exact",
-        "methods": ["POST"]
-      },
-      {
-        "path": "/put",
-        "pathType": "Exact",
-        "methods": ["PUT"]
-      },
-      {
-        "path": "/delete",
-        "pathType": "Exact",
-        "methods": ["DELETE"]
-      },
-      {
-        "path": "/anything",
-        "pathType": "Exact"
       }
     ],
     "config": {
       "destinations": [
         {
-          "destinationRef": { "kind": "Service", "name": "httpbin" },
+          "destinationRef": { "kind": "Service", "name": "backend" },
           "weight": 100
         }
       ]

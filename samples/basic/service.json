@@ -2,14 +2,14 @@
   "apiVersion": "kimchi/v1",
   "kind": "Service",
   "metadata": {
-    "name": "httpbin"
+    "name": "backend"
   },
   "spec": {
     "protocol": "HTTP",
     "loadBalancing": {
       "strategy": "ROUND_ROBIN",
       "targets": [
-        { "host": "httpbin.org", "port": 80, "weight": 1 }
+        { "host": "192.168.11.58", "port": 80, "weight": 1 }
       ]
     }
   }

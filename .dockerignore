@@ -1,0 +1,9 @@
+cmake-build-debug
+cmake-build-release
+cmake_local
+conan
+dist
+.conan2
+.git
+.codex
+__pycache__

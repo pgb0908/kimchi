@@ -217,6 +217,20 @@ GatewayConfig GatewayConfig::fromJson(const folly::dynamic& d) {
         }
     }
 
+    if (auto* srv = spec.get_ptr("server")) {
+        cfg.server.workerThreads =
+            static_cast<int32_t>(getInt(*srv, "workerThreads", 0));
+        cfg.server.idleTimeoutMs =
+            static_cast<int32_t>(getInt(*srv, "idleTimeoutMs", 60000));
+        cfg.server.listenBacklog =
+            static_cast<int32_t>(getInt(*srv, "listenBacklog", 1024));
+        cfg.server.maxConcurrentStreams =
+            static_cast<int32_t>(getInt(*srv, "maxConcurrentStreams", 100));
+        cfg.server.initialReceiveWindowBytes =
+            static_cast<int32_t>(getInt(*srv, "initialReceiveWindowBytes", 65536));
+        cfg.server.useZeroCopy = getBool(*srv, "useZeroCopy", false);
+    }
+
     return cfg;
 }
 

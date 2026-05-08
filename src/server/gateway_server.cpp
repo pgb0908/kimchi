@@ -13,10 +13,28 @@ namespace kimchi {
 GatewayServer::GatewayServer(const std::vector<config::ListenerConfig>& listeners,
                              std::shared_ptr<const config::ConfigStore> store,
                              std::map<std::string, std::shared_ptr<JwksCache>> jwksCaches) {
+    const config::ServerTuningConfig& tuning = store->gateway
+        ? store->gateway->server
+        : config::ServerTuningConfig{};
+
     proxygen::HTTPServerOptions opts;
-    opts.threads = std::thread::hardware_concurrency();
-    opts.idleTimeout = std::chrono::milliseconds(60'000);
-    opts.shutdownOn = {SIGINT, SIGTERM};
+    opts.threads = tuning.workerThreads > 0
+        ? static_cast<size_t>(tuning.workerThreads)
+        : std::thread::hardware_concurrency();
+    opts.idleTimeout        = std::chrono::milliseconds(tuning.idleTimeoutMs);
+    opts.listenBacklog      = static_cast<uint32_t>(tuning.listenBacklog);
+    opts.maxConcurrentIncomingStreams =
+        static_cast<uint32_t>(tuning.maxConcurrentStreams);
+    opts.initialReceiveWindow    = static_cast<size_t>(tuning.initialReceiveWindowBytes);
+    opts.receiveStreamWindowSize = static_cast<size_t>(tuning.initialReceiveWindowBytes);
+    opts.receiveSessionWindowSize= static_cast<size_t>(tuning.initialReceiveWindowBytes);
+    opts.useZeroCopy        = tuning.useZeroCopy;
+    opts.shutdownOn         = {SIGINT, SIGTERM};
+
+    LOG(INFO) << "Server tuning — threads:" << opts.threads
+              << " idleTimeout:" << tuning.idleTimeoutMs << "ms"
+              << " listenBacklog:" << tuning.listenBacklog
+              << " zeroCopy:" << (tuning.useZeroCopy ? "on" : "off");
     opts.handlerFactories.emplace_back(
         std::make_unique<GatewayHandlerFactory>(std::move(store),
                                                 std::move(jwksCaches)));

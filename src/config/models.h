@@ -117,12 +117,28 @@ struct AccessLogConfig {
     std::string format = "JSON";
 };
 
+struct ServerTuningConfig {
+    // IO worker thread count. 0 = hardware_concurrency().
+    int32_t workerThreads = 0;
+    // Idle connection / slow-request timeout (ms).
+    int32_t idleTimeoutMs = 60000;
+    // TCP accept queue depth.
+    int32_t listenBacklog = 1024;
+    // Max concurrent HTTP/2 streams per connection.
+    int32_t maxConcurrentStreams = 100;
+    // HTTP/2 initial receive window size (bytes).
+    int32_t initialReceiveWindowBytes = 65536;
+    // Enable SO_ZEROCOPY for zero-copy socket sends.
+    bool useZeroCopy = false;
+};
+
 struct GatewayConfig {
     std::string apiVersion;
     std::string kind;
     Metadata metadata;
 
     AccessLogConfig accessLog;
+    ServerTuningConfig server;
 
     static GatewayConfig fromJson(const folly::dynamic& d);
 };

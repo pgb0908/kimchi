@@ -40,7 +40,23 @@ class FollyConan(ConanFile):
 
     def generate(self):
         CMakeDeps(self).generate()
-        CMakeToolchain(self).generate()
+        tc = CMakeToolchain(self)
+        # folly's FindLibEvent.cmake uses find_path/find_library which searches
+        # CMAKE_PREFIX_PATH and system paths. Conan's toolchain only adds config-file
+        # dirs to CMAKE_PREFIX_PATH, not the actual package include/lib dirs.
+        # On systems without system-wide libevent-dev (e.g. Ubuntu 20.04 in Docker),
+        # the search fails. Pre-set the result variables to bypass the search.
+        libevent_pkg = str(self.dependencies["libevent"].package_folder)
+        tc.cache_variables["LIBEVENT_INCLUDE_DIR"] = libevent_pkg + "/include"
+        tc.cache_variables["LIBEVENT_LIB"] = libevent_pkg + "/lib/libevent.a"
+        tc.cache_variables["LIBEVENT_LIBRARIES"] = libevent_pkg + "/lib/libevent.a"
+        # Conan toolchain writes `set(CMAKE_CXX_STANDARD "14" CACHE STRING "" FORCE)`
+        # based on the auto-detected profile (GCC 10 defaults to gnu14). FORCE overrides
+        # even command-line -D cache variables. Normal variables always shadow cache
+        # variables in CMake regardless of FORCE, so set them here.
+        tc.variables["CMAKE_CXX_STANDARD"] = "20"
+        tc.variables["CMAKE_CXX_EXTENSIONS"] = "ON"
+        tc.generate()
 
     def build(self):
         self._patch_upstream_cmake()

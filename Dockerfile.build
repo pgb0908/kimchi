@@ -1,0 +1,59 @@
+FROM ubuntu:20.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    git \
+    curl \
+    libssl-dev \
+    pkg-config \
+    python3 \
+    python3-pip \
+    ninja-build \
+    software-properties-common \
+    && add-apt-repository ppa:ubuntu-toolchain-r/test -y \
+    && apt-get update && apt-get install -y \
+    gcc-12 \
+    g++-12 \
+    && update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-12 12 \
+    && update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-12 12 \
+    && update-alternatives --install /usr/bin/cc cc /usr/bin/gcc-12 12 \
+    && update-alternatives --install /usr/bin/c++ c++ /usr/bin/g++-12 12 \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /src
+COPY . .
+
+# Install local cmake and conan (same as dev environment)
+RUN bash scripts/install_cmake.sh
+# Add cmake_local/bin to PATH so Conan package recipes can find `cmake`
+# when building dependencies from source (e.g. bzip2 calls cmake directly).
+ENV PATH="/src/cmake_local/bin:${PATH}"
+RUN bash scripts/install_conan.sh
+# Configure Conan to use all available CPUs when building packages from source.
+# tools.build:jobs is picked up by CMake-based recipes and boost's b2.
+RUN mkdir -p ~/.conan2 && echo "tools.build:jobs=$(nproc)" > ~/.conan2/global.conf
+
+# First build — compiles all Conan deps from source.
+# --build=* is required on Ubuntu 20.04 (glibc 2.31): the b2 build tool
+# (a tool_require of boost) only has os/arch settings, so Conan downloads
+# the generic Linux x86_64 prebuilt even with --build=b2. That prebuilt
+# requires glibc 2.32+. Building everything from source with --build=*
+# ensures all binaries are compiled with Ubuntu 20.04's gcc 9 (glibc 2.31).
+RUN cmake_local/bin/cmake -B cmake-build-release -S . \
+        -DCMAKE_BUILD_TYPE=Release \
+        "-DCONAN_INSTALL_ARGS=--build=*"
+RUN cmake_local/bin/cmake --build cmake-build-release --target kimchi -j$(nproc)
+RUN mkdir -p dist && cp cmake-build-release/src/kimchi dist/kimchi
+
+# ── Output stage ─────────────────────────────────────────────────────────────
+FROM ubuntu:20.04
+
+RUN apt-get update && apt-get install -y \
+    libssl1.1 \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=0 /src/dist/kimchi /usr/local/bin/kimchi
+
+ENTRYPOINT ["kimchi"]
