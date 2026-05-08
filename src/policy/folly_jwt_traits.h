@@ -2,7 +2,16 @@
 
 // jwt-cpp traits adapter using folly::dynamic as the JSON backend.
 // Avoids adding picojson/nlohmann as separate dependencies.
+//
+// object_type and array_type are wrapper structs (not raw std::map/vector)
+// because jwt-cpp requires std::is_constructible<folly::dynamic, object_type>
+// and std::is_constructible<folly::dynamic, array_type> to hold. folly::dynamic
+// has no constructor from std::map or std::vector, so we add implicit conversion
+// operators on the wrapper types to satisfy the requirement.
 
+#ifndef JWT_DISABLE_PICOJSON
+#define JWT_DISABLE_PICOJSON
+#endif
 #include <jwt-cpp/jwt.h>
 
 #include <folly/dynamic.h>
@@ -16,10 +25,28 @@ namespace jwt {
 namespace traits {
 
 struct folly_dynamic {
+    struct object_type : std::map<std::string, folly::dynamic> {
+        using base = std::map<std::string, folly::dynamic>;
+        using base::base;
+        using base::operator[];
+        /* implicit */ operator folly::dynamic() const {
+            folly::dynamic obj(folly::dynamic::object());
+            for (const auto& [k, v] : *this) obj[k] = v;
+            return obj;
+        }
+    };
+
+    struct array_type : std::vector<folly::dynamic> {
+        using base = std::vector<folly::dynamic>;
+        using base::base;
+        /* implicit */ operator folly::dynamic() const {
+            return folly::dynamic(
+                folly::dynamic::array_range_construct, begin(), end());
+        }
+    };
+
     using json          = folly::dynamic;
     using value_type    = folly::dynamic;
-    using object_type   = std::map<std::string, folly::dynamic>;
-    using array_type    = std::vector<folly::dynamic>;
     using string_type   = std::string;
     using number_type   = double;
     using integer_type  = int64_t;

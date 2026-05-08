@@ -8,6 +8,7 @@ cmake_local/
 cmake-build-*/
 build/
 build-release/
+dist/
 
 # Conan
 conan/dependency_graph.png

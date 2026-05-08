@@ -47,15 +47,24 @@ void JwtPolicy::onRequest(
                              R"({"error":"unauthorized","message":"unknown key id"})");
                 return;
             }
-            pubKeyPem = jwks.get_jwk(kid).get_rsa_key();
+            const auto& jwk = jwks.get_jwk(kid);
+            if (!jwk.has_x5c()) {
+                throw std::runtime_error("JWKS key missing x5c certificate");
+            }
+            pubKeyPem = jwt::helper::convert_base64_der_to_pem(
+                jwk.get_x5c_key_value());
         } else {
-            auto keys = jwks.get_keys();
-            if (keys.empty()) {
+            auto it = jwks.begin();
+            if (it == jwks.end()) {
                 blockRequest(401, "Unauthorized",
                              R"({"error":"unauthorized","message":"empty JWKS"})");
                 return;
             }
-            pubKeyPem = keys.front().get_rsa_key();
+            if (!it->has_x5c()) {
+                throw std::runtime_error("JWKS key missing x5c certificate");
+            }
+            pubKeyPem = jwt::helper::convert_base64_der_to_pem(
+                it->get_x5c_key_value());
         }
 
         auto verifier =

@@ -126,6 +126,12 @@ RouterConfig RouterConfig::fromJson(const folly::dynamic& d) {
         for (const auto& r : *rules) {
             RouterRule rule;
             rule.path = getStr(r, "path");
+            if (auto* pt = r.get_ptr("pathType")) {
+                const auto ptStr = pt->getString();
+                if (ptStr == "Exact")      rule.pathType = PathType::Exact;
+                else if (ptStr == "Regex") rule.pathType = PathType::Regex;
+                else                       rule.pathType = PathType::Prefix;
+            }
             if (auto* methods = r.get_ptr("methods")) {
                 for (const auto& m : *methods) {
                     rule.methods.push_back(m.getString());

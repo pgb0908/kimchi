@@ -77,8 +77,11 @@ struct ServiceConfig {
 
 // ── Router ────────────────────────────────────────────────────────────────────
 
+enum class PathType { Exact, Prefix, Regex };
+
 struct RouterRule {
     std::string path;
+    PathType pathType = PathType::Prefix;
     std::vector<std::string> methods;
 };
 

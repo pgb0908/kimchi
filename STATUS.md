@@ -1,16 +1,20 @@
 # 구현 현황
 
-ARCH.md 및 doc/config-models 기준으로 현재 구현 상태를 정리한다.
+마지막 업데이트: 2026-05-08
+
+---
 
 ## 요청 처리 흐름 대비 현황
 
 ```
 Client
   → Listener                    ✅ 포트 바인딩 (TLS 미구현)
-  → Gateway 전역 정책            ⬜ AccessLog 모델만 존재, 실제 적용 없음
-  → Router 매칭                  ❌ GatewayHandler가 stub (무조건 200 OK)
-  → policy 수행                  🔶 Filter 체인만 존재, Policy 리소스 미구현
-  → Service 선택 및 upstream     ❌ 미구현
+  → Gateway 전역 정책            ⬜ AccessLogConfig 모델만 존재, 실제 적용 없음
+  → Router 매칭                  ✅ 시작 시 regex pre-compile, path+method 매칭
+  → Policy 체인 (HeaderFilter    ✅ x-request-id / x-trace-id 주입
+              → JwtPolicy        ✅ RS256/JWKS 검증 (x5c 방식)
+              → RateLimitFilter) ⬜ 인터페이스만 존재, NullStore (항상 허용)
+  → Service 선택 및 upstream     🔶 프록시 동작, 단 LB는 첫 번째 타겟만 사용
   → Access Log / Metrics / Trace ❌ 미구현
 ```
 
@@ -20,85 +24,89 @@ Client
 
 | 영역 | 내용 |
 |------|------|
-| Config 모델 | Listener, Service, Router, Gateway, ConfigStore |
-| Config 로더 | 디렉토리 JSON 로드, Admin API를 통한 reload |
-| 서버 인프라 | GatewayServer, AdminServer, Listener config 기반 포트 바인딩 |
+| Config 모델 | Listener, Service, Router, Gateway, Policy (JWT) |
+| Config 로더 | 디렉토리 JSON 로드, 5가지 kind 파싱 |
+| 서버 인프라 | GatewayServer (data plane), AdminServer |
 | Admin API | `GET /healthz`, `POST /config/reload` |
-| 필터 체인 | FilterBase, AuthFilter, HeaderFilter, RateLimitFilter (stub) |
+| Router 매칭 | GatewayHandlerFactory에서 시작 시 regex pre-compile, 미매칭 즉시 404 |
+| Upstream 프록시 | UpstreamClient — Proxygen HTTP 커넥터, 응답 스트리밍 |
+| 필터 체인 기반 | FilterBase, HeaderFilter, RateLimitFilter(NullStore) |
+| Policy 시스템 | PolicyEngine.buildChain(), order 기반 정렬 |
+| JWT 인증 | JwtPolicy — RS256/JWKS, kid 지원, issuer/audience 검증 |
+| JWKS 캐시 | JwksCache — 시작 시 blocking fetch, 실패 시 FATAL |
+| 릴리즈 빌드 | `scripts/build_release.sh` — `dist/kimchi` 생성 |
 
 ---
 
-## 미완료
+## 미완료 / 스텁
 
-### 1. Router 매칭 — 핵심
-- `GatewayHandler::onEOM`이 stub 상태 (모든 요청에 고정 응답 반환)
-- ConfigStore의 RouterConfig를 읽어 path/method 매칭 로직 구현 필요
-- RouterRule의 path는 regex 지원 필요 (`/api/orders(/.*)`형태)
+### 1. Rate Limit — Redis 백엔드
+- `RateLimitStore` 인터페이스 정의됨
+- `NullRateLimitStore`: 항상 통과 (stub)
+- 미구현: Redis 기반 quota 차감, tenant/route 기준 제한
 
-### 2. Upstream 프록시 — 핵심
-- 매칭된 RouterDestination → ServiceConfig 타겟으로 HTTP 전달
-- `rewrite.path` 적용
-- Proxygen의 `HTTPConnector` 또는 클라이언트 사용
+### 2. 로드 밸런싱
+- 현재: destinations 배열의 첫 번째 타겟만 사용
+- 미구현: weight 기반, ROUND_ROBIN 등 실제 LB 전략
 
-### 3. Policy 시스템
-- ConfigStore에 Policy 리소스 모델 없음
-- `spec.order` 기반 실행 순서 엔진 필요
-- 구현 필요한 Policy 종류 (doc/config-models 기준):
+### 3. TLS 종료
+- `TlsConfig` 모델 존재, `GatewayServer`에서 경고 로그만 출력
+- 미구현: Proxygen/wangle TLS 설정 연동
 
-| Policy | order | 내용 |
-|--------|-------|------|
-| policy-security | 5 | JWT 검증, IP 필터, CORS |
-| policy-traffic | 10 | Rate Limit 고도화, SLA 차등 적용 |
-| policy-enhance | 12 | 캐싱 |
-| policy-transform | 15 | 헤더/쿼리 조작, 바디 변환, 마스킹 |
+### 4. JWKS — HTTPS URI 지원
+- 현재: HTTP only (POSIX socket)
+- 미구현: wangle/fizz TLS 클라이언트로 교체
 
-### 4. Service 고급 기능
-모델은 존재하나 실제 동작 없음:
-- Load balancing (ROUND_ROBIN 등)
+### 5. JWKS — 자동 갱신
+- 현재: 시작 시 1회 fetch, immutable
+- 미구현: `cacheTtlSeconds` 기반 background thread + `folly::RWSpinLock` swap
+
+### 6. JWT — n/e 파라미터 방식
+- 현재: `x5c` 클레임 방식만 지원
+- 미구현: RSA 모듈러스(n) + 지수(e) → OpenSSL BigNum → PEM 변환
+
+### 7. Service 고급 기능
+모델은 존재하나 GatewayHandler에서 미사용:
 - Health check
 - Retry (retryOn, numRetries, backoff)
 - Circuit breaker
 - Timeout (connect / read / send)
 - Upstream TLS
 
-### 5. Rate Limit Redis 연동
-- `RateLimitStore` 인터페이스만 존재, `NullRateLimitStore` (항상 허용) stub
-- Redis 기반 구현체 필요 (tenant/route 기준 quota 차감)
-
-### 6. 관측성
+### 8. 관측성
 - **Access Log**: `AccessLogConfig` 모델 존재, 실제 로깅 없음
-- **Metrics**: 미구현 (Gateway spec에 `/metrics`, port 9090 계획)
-- **Tracing**: 미구현 (OpenTelemetry 엔드포인트 계획)
+- **Metrics**: 미구현 (Gateway spec에 port 9090 계획)
+- **Tracing**: 미구현 (OpenTelemetry 계획)
 
-### 7. TLS 종료
-- `TlsConfig` 모델 존재 (`GatewayServer`에서 경고 로그만 출력)
-- Proxygen의 TLS 설정 연동 필요
-
-### 8. Admin API 확장
+### 9. Admin API 확장
 - 현재: 파일 기반 config reload만 지원
-- 미구현: 개별 리소스 CRUD (Control Plane에서 push 방식)
+- 미구현: 개별 리소스 CRUD (Control Plane push 방식)
+- 미구현: config reload 시 JWKS 재fetch
 
-### 9. message-filter
-- `doc/Filter.md`에 계획 중으로 명시됨
-- 바디 전문 파싱, 메시지 스키마 배포 기반 검증
+### 10. Policy 추가 타입
+| order | 타입 | 상태 |
+|-------|------|------|
+| 5 | policy-security (JWT) | ✅ RS256/x5c 구현 |
+| 5 | policy-security (IP filter, CORS) | ❌ 미구현 |
+| 10 | policy-traffic (Rate Limit) | ⬜ NullStore stub |
+| 12 | policy-enhance (캐싱) | ❌ 미구현 |
+| 15 | policy-transform (헤더/바디 변환) | ❌ 미구현 |
 
 ---
 
 ## 우선순위 제안
 
 ```
-1단계 (데이터 플레인 기본 동작)
-  → Router 매칭 + Upstream 프록시
+다음 단계 후보 (데이터 플레인 완성도 기준)
+  1. Rate Limit Redis 연동          — 실제 트래픽 제어 가능해짐
+  2. JWKS n/e 파라미터 지원          — Auth0 등 x5c 없는 IdP 호환
+  3. 로드 밸런싱 (weighted/RR)       — 다중 upstream 실용화
+  4. JWKS 자동 갱신                  — 운영 안정성
 
-2단계 (Policy 시스템)
-  → Policy 모델 + 실행 엔진
-  → policy-security (JWT, IP 필터)
-  → policy-traffic (Rate Limit Redis 연동)
+안정성 단계
+  5. Retry / Circuit breaker / Timeout
+  6. TLS 종료
 
-3단계 (안정성)
-  → Retry / Circuit breaker / Health check
-  → TLS 종료
-
-4단계 (관측성)
-  → Access Log → Metrics → Tracing
+관측성 단계
+  7. Access Log → Metrics → Tracing
 ```
