@@ -1,29 +1,4 @@
 cmake_minimum_required(VERSION 3.24)
-set(CMAKE_PROJECT_TOP_LEVEL_INCLUDES "${CMAKE_CURRENT_SOURCE_DIR}/cmake/conan_provider.cmake") # 가장 프로젝트 상위에 존재해야함
-set(CONAN_COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/conan/bin/conan")
-if(NOT EXISTS "${CONAN_COMMAND}")
-    message(STATUS "Conan not found. Running scripts/install_conan.sh...")
-    execute_process(
-        COMMAND bash "${CMAKE_CURRENT_SOURCE_DIR}/scripts/install_conan.sh"
-        RESULT_VARIABLE _conan_install_result
-    )
-    if(NOT _conan_install_result EQUAL 0)
-        message(FATAL_ERROR "Conan install failed. Run scripts/install_conan.sh manually.")
-    endif()
-endif()
-
-option(KIMCHI_EXPORT_CONAN_RECIPES "Export local Conan recipes before configure" ON)
-if(KIMCHI_EXPORT_CONAN_RECIPES)
-    execute_process(
-        COMMAND bash "${CMAKE_CURRENT_SOURCE_DIR}/scripts/export_recipes.sh"
-        RESULT_VARIABLE _recipes_result
-    )
-    if(NOT _recipes_result EQUAL 0)
-        message(FATAL_ERROR "Recipe export failed. Run scripts/export_recipes.sh manually.")
-    endif()
-endif()
-
-
 project(kimchi C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
@@ -54,9 +29,10 @@ set (CXX_FLAGS
 
 string (REPLACE ";" " " CMAKE_CXX_FLAGS "${CXX_FLAGS}")
 
+find_package(Threads REQUIRED)
+
 SET(CMAKE_CXX_FLAGS_DEBUG "-O0 -g -ggdb -D_DEBUG -DGOOGLE_STRIP_LOG=0")
 SET(CMAKE_CXX_FLAGS_RELEASE "-O3 -g -ggdb -DNDEBUG -DGOOGLE_STRIP_LOG=1")
-SET(DEPENDENT_LIBRARIES event glog pthread)
 
 set(SANITIZE "" CACHE STRING "Sanitizer to enable in Debug. One of: '', address, thread")
 set_property(CACHE SANITIZE PROPERTY STRINGS "" address thread)

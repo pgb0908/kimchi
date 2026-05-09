@@ -1,0 +1,18 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
+  "name": "kimchi",
+  "version": "0.1.0",
+  "builtin-baseline": "99a97de2cb371449d4fb9dc970f2ac562d689ec2",
+  "dependencies": [
+    "proxygen",
+    "c-ares",
+    "glog",
+    "gflags",
+    "libevent",
+    "jwt-cpp",
+    "zlib"
+  ],
+  "overrides": [
+    { "name": "gperf", "version": "3.1", "port-version": 7 }
+  ]
+}
