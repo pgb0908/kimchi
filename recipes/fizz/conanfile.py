@@ -81,7 +81,7 @@ class FizzConan(ConanFile):
             self,
             cmake_lists,
             "find_package(Sodium REQUIRED)",
-            "find_package(libsodium CONFIG REQUIRED)\nset(Sodium_FOUND TRUE)",
+            "find_package(libsodium CONFIG REQUIRED)\nget_target_property(sodium_INCLUDE_DIR libsodium::libsodium INTERFACE_INCLUDE_DIRECTORIES)\nset(Sodium_FOUND TRUE)",
             strict=False,
         )
         replace_in_file(
