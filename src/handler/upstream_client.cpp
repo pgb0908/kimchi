@@ -8,14 +8,12 @@ namespace kimchi {
 
 UpstreamClient::UpstreamClient(proxygen::ResponseHandler* downstream,
                                folly::EventBase* evb,
-                               std::unique_ptr<proxygen::HTTPMessage> req,
-                               std::unique_ptr<folly::IOBuf> body)
+                               std::unique_ptr<proxygen::HTTPMessage> req)
     : downstream_(downstream),
       evb_(evb),
       timer_(std::chrono::milliseconds(30000), evb),
       connector_(this, timer_),
-      upstreamReq_(std::move(req)),
-      requestBody_(std::move(body)) {}
+      upstreamReq_(std::move(req)) {}
 
 void UpstreamClient::connect(const folly::SocketAddress& addr) {
     connector_.connect(evb_, addr, std::chrono::milliseconds(5000));
@@ -25,10 +23,30 @@ void UpstreamClient::connectSuccess(
     proxygen::HTTPUpstreamSession* session) noexcept {
     txn_ = session->newTransaction(this);
     txn_->sendHeaders(*upstreamReq_);
-    if (requestBody_) {
-        txn_->sendBody(std::move(requestBody_));
+    for (auto& buf : pendingBodies_) {
+        txn_->sendBody(std::move(buf));
     }
-    txn_->sendEOM();
+    pendingBodies_.clear();
+    connected_ = true;
+    if (eomReceived_) {
+        txn_->sendEOM();
+    }
+}
+
+void UpstreamClient::sendBody(std::unique_ptr<folly::IOBuf> body) {
+    if (connected_) {
+        txn_->sendBody(std::move(body));
+    } else {
+        pendingBodies_.push_back(std::move(body));
+    }
+}
+
+void UpstreamClient::sendEOM() {
+    if (connected_) {
+        txn_->sendEOM();
+    } else {
+        eomReceived_ = true;
+    }
 }
 
 void UpstreamClient::connectError(

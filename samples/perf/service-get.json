@@ -1,0 +1,16 @@
+{
+  "apiVersion": "kimchi/v1",
+  "kind": "Service",
+  "metadata": {
+    "name": "backend-get"
+  },
+  "spec": {
+    "protocol": "HTTP",
+    "loadBalancing": {
+      "strategy": "ROUND_ROBIN",
+      "targets": [
+        { "host": "192.168.11.58", "port": 80, "weight": 1 }
+      ]
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "apiVersion": "kimchi/v1",
+  "kind": "Gateway",
+  "metadata": {
+    "name": "default"
+  },
+  "spec": {
+    "server": {
+      "workerThreads": 4,
+      "idleTimeoutMs": 60000,
+      "listenBacklog": 4096,
+      "maxConcurrentStreams": 1000,
+      "initialReceiveWindowBytes": 65536,
+      "useZeroCopy": false
+    },
+    "observability": {
+      "accessLog": {
+        "enabled": false,
+        "format": "JSON"
+      }
+    }
+  }
+}

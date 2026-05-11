@@ -11,9 +11,13 @@
 
 namespace kimchi {
 
+class UpstreamClient;
+
 // Forwards the request to the upstream service specified by the pre-matched
 // RouterConfig. service_ and upstreamAddr_ are pre-resolved at factory
 // construction time to eliminate per-request DNS and service lookup costs.
+// Upstream connection is initiated in onRequest() to overlap TCP handshake
+// with body reception, eliminating full-body buffering for large payloads.
 class GatewayHandler : public proxygen::RequestHandler {
 public:
     GatewayHandler(config::RouterConfig router,
@@ -31,8 +35,7 @@ private:
     config::RouterConfig router_;
     const config::ServiceConfig* service_;
     folly::SocketAddress upstreamAddr_;
-    std::unique_ptr<proxygen::HTTPMessage> requestHeaders_;
-    std::unique_ptr<folly::IOBuf> requestBody_;
+    UpstreamClient* upstreamClient_{nullptr};
 };
 
 } // namespace kimchi

@@ -17,38 +17,25 @@ GatewayHandler::GatewayHandler(config::RouterConfig router,
 
 void GatewayHandler::onRequest(
     std::unique_ptr<proxygen::HTTPMessage> req) noexcept {
-    requestHeaders_ = std::move(req);
-    LOG(INFO) << requestHeaders_->getMethodString() << " "
-              << requestHeaders_->getPath();
-}
+    LOG(INFO) << req->getMethodString() << " " << req->getPath();
 
-void GatewayHandler::onBody(
-    std::unique_ptr<folly::IOBuf> body) noexcept {
-    if (!requestBody_) {
-        requestBody_ = std::move(body);
-    } else {
-        requestBody_->appendToChain(std::move(body));
-    }
-}
-
-void GatewayHandler::onEOM() noexcept {
     const auto& dest = router_.destinations[0];
     const auto& target = service_->loadBalancing.targets[0];
 
     auto upstreamReq = std::make_unique<proxygen::HTTPMessage>();
-    upstreamReq->setMethod(requestHeaders_->getMethodString());
+    upstreamReq->setMethod(req->getMethodString());
     upstreamReq->setHTTPVersion(1, 1);
 
     if (dest.rewrite && !dest.rewrite->path.empty()) {
         std::string upstreamUrl = dest.rewrite->path;
-        const std::string& qs = requestHeaders_->getQueryString();
+        const std::string& qs = req->getQueryString();
         if (!qs.empty()) upstreamUrl += "?" + qs;
         upstreamReq->setURL(upstreamUrl);
     } else {
-        upstreamReq->setURL(requestHeaders_->getURL());
+        upstreamReq->setURL(req->getURL());
     }
 
-    requestHeaders_->getHeaders().forEach(
+    req->getHeaders().forEach(
         [&](const std::string& name, const std::string& val) {
             upstreamReq->getHeaders().add(name, val);
         });
@@ -67,9 +54,17 @@ void GatewayHandler::onEOM() noexcept {
     upstreamReq->getHeaders().set(proxygen::HTTP_HEADER_HOST, hostHeader);
 
     folly::EventBase* evb = folly::EventBaseManager::get()->getEventBase();
-    auto* client = new UpstreamClient(downstream_, evb, std::move(upstreamReq),
-                                      std::move(requestBody_));
-    client->connect(upstreamAddr_);
+    upstreamClient_ = new UpstreamClient(downstream_, evb, std::move(upstreamReq));
+    upstreamClient_->connect(upstreamAddr_);
+}
+
+void GatewayHandler::onBody(
+    std::unique_ptr<folly::IOBuf> body) noexcept {
+    upstreamClient_->sendBody(std::move(body));
+}
+
+void GatewayHandler::onEOM() noexcept {
+    upstreamClient_->sendEOM();
 }
 
 void GatewayHandler::onUpgrade(proxygen::UpgradeProtocol /*prot*/) noexcept {

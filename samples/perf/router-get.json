@@ -1,0 +1,24 @@
+{
+  "apiVersion": "kimchi/v1",
+  "kind": "Router",
+  "metadata": {
+    "name": "router-get"
+  },
+  "spec": {
+    "rules": [
+      {
+        "path": "/get",
+        "pathType": "Exact",
+        "methods": ["GET"]
+      }
+    ],
+    "config": {
+      "destinations": [
+        {
+          "destinationRef": { "kind": "Service", "name": "backend-get" },
+          "weight": 100
+        }
+      ]
+    }
+  }
+}

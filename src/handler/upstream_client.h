@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <vector>
 
 #include <folly/io/IOBuf.h>
 #include <folly/io/async/EventBase.h>
@@ -18,10 +19,11 @@ class UpstreamClient : public proxygen::HTTPConnector::Callback,
 public:
     UpstreamClient(proxygen::ResponseHandler* downstream,
                    folly::EventBase* evb,
-                   std::unique_ptr<proxygen::HTTPMessage> req,
-                   std::unique_ptr<folly::IOBuf> body);
+                   std::unique_ptr<proxygen::HTTPMessage> req);
 
     void connect(const folly::SocketAddress& addr);
+    void sendBody(std::unique_ptr<folly::IOBuf> body);
+    void sendEOM();
 
     // HTTPConnector::Callback
     void connectSuccess(proxygen::HTTPUpstreamSession* session) noexcept override;
@@ -48,7 +50,9 @@ private:
     proxygen::HTTPConnector connector_;
     proxygen::HTTPTransaction* txn_{nullptr};
     std::unique_ptr<proxygen::HTTPMessage> upstreamReq_;
-    std::unique_ptr<folly::IOBuf> requestBody_;
+    std::vector<std::unique_ptr<folly::IOBuf>> pendingBodies_;
+    bool connected_{false};
+    bool eomReceived_{false};
     bool headersSent_{false};
 };
 

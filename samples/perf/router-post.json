@@ -1,0 +1,24 @@
+{
+  "apiVersion": "kimchi/v1",
+  "kind": "Router",
+  "metadata": {
+    "name": "router-post"
+  },
+  "spec": {
+    "rules": [
+      {
+        "path": "/post",
+        "pathType": "Exact",
+        "methods": ["POST"]
+      }
+    ],
+    "config": {
+      "destinations": [
+        {
+          "destinationRef": { "kind": "Service", "name": "backend-post" },
+          "weight": 100
+        }
+      ]
+    }
+  }
+}
