@@ -4,8 +4,15 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$SCRIPT_DIR/.."
+BASE_IMAGE="kimchi-builder-base:ubuntu20"
 IMAGE="kimchi-builder:ubuntu20"
 OUTPUT="$PROJECT_DIR/dist/kimchi-ubuntu20"
+
+# 베이스 이미지가 없으면 자동 빌드
+if ! docker image inspect "$BASE_IMAGE" &>/dev/null; then
+    echo "=== Base image not found. Building base image first ==="
+    bash "$SCRIPT_DIR/build_builder.sh"
+fi
 
 echo "=== Building Docker image (Ubuntu 20.04) ==="
 docker build -f "$PROJECT_DIR/Dockerfile.build" -t "$IMAGE" "$PROJECT_DIR"

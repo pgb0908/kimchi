@@ -1,52 +1,17 @@
-FROM ubuntu:20.04
+FROM kimchi-builder-base:ubuntu20
 
-ENV DEBIAN_FRONTEND=noninteractive
-
-RUN apt-get update && apt-get install -y \
-    build-essential \
-    git \
-    curl \
-    zip \
-    unzip \
-    tar \
-    pkg-config \
-    libssl-dev \
-    python3 \
-    ninja-build \
-    autoconf \
-    autoconf-archive \
-    automake \
-    libtool \
-    m4 \
-    gettext \
-    bison \
-    flex \
-    patchelf \
-    software-properties-common \
-    && add-apt-repository ppa:ubuntu-toolchain-r/test -y \
-    && apt-get update && apt-get install -y \
-    gcc-12 \
-    g++-12 \
-    && update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-12 12 \
-    && update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-12 12 \
-    && update-alternatives --install /usr/bin/cc cc /usr/bin/gcc-12 12 \
-    && update-alternatives --install /usr/bin/c++ c++ /usr/bin/g++-12 12 \
-    && rm -rf /var/lib/apt/lists/*
+ENV PATH="/src/cmake_local/bin:${PATH}"
+ENV VCPKG_ROOT=/root/vcpkg
 
 WORKDIR /src
 COPY . .
 
-RUN bash scripts/install_cmake.sh
-ENV PATH="/src/cmake_local/bin:${PATH}"
-
-RUN git clone https://github.com/microsoft/vcpkg.git /root/vcpkg \
-    && /root/vcpkg/bootstrap-vcpkg.sh -disableMetrics
-ENV VCPKG_ROOT=/root/vcpkg
-
+# vcpkg_installed는 베이스 이미지의 것을 재사용 — vcpkg 재빌드 없음
 RUN cmake_local/bin/cmake -B cmake-build-release -S . \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_TOOLCHAIN_FILE=/root/vcpkg/scripts/buildsystems/vcpkg.cmake \
     -DVCPKG_TARGET_TRIPLET=x64-linux \
+    -DVCPKG_INSTALLED_DIR=/builder/vcpkg_installed \
     -DBUILD_TESTING=OFF \
     -DCMAKE_MAKE_PROGRAM=/usr/bin/make
 RUN cmake_local/bin/cmake --build cmake-build-release --target kimchi -j$(nproc)
