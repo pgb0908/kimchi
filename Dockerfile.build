@@ -21,6 +21,7 @@ RUN apt-get update && apt-get install -y \
     gettext \
     bison \
     flex \
+    patchelf \
     software-properties-common \
     && add-apt-repository ppa:ubuntu-toolchain-r/test -y \
     && apt-get update && apt-get install -y \
@@ -49,11 +50,15 @@ RUN cmake_local/bin/cmake -B cmake-build-release -S . \
     -DBUILD_TESTING=OFF \
     -DCMAKE_MAKE_PROGRAM=/usr/bin/make
 RUN cmake_local/bin/cmake --build cmake-build-release --target kimchi -j$(nproc)
-RUN mkdir -p dist && cp cmake-build-release/src/kimchi dist/kimchi
+RUN mkdir -p dist/lib \
+    && cp cmake-build-release/src/kimchi dist/kimchi \
+    && cp /usr/lib/x86_64-linux-gnu/libstdc++.so.6* dist/lib/ \
+    && patchelf --set-rpath '$ORIGIN/lib' dist/kimchi
 
 # ── Output stage ─────────────────────────────────────────────────────────────
 FROM ubuntu:20.04
 
+COPY --from=0 /usr/lib/x86_64-linux-gnu/libstdc++.so.6* /usr/lib/x86_64-linux-gnu/
 COPY --from=0 /src/dist/kimchi /usr/local/bin/kimchi
 
 ENTRYPOINT ["kimchi"]

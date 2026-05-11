@@ -1,0 +1,16 @@
+[Unit]
+Description=Kimchi API Gateway
+After=network.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=kimchi
+Group=kimchi
+ExecStart=/usr/local/bin/kimchi -config_dir=/etc/kimchi/config -logtostderr
+Restart=on-failure
+RestartSec=5
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target
